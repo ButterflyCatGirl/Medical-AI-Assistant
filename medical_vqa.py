@@ -19,7 +19,7 @@ logger = logging.getLogger(__name__)
 MAX_IMAGE_DIM = 512  # Higher resolution for medical details
 SUPPORTED_FORMATS = ["jpg", "jpeg", "png"]
 MAX_FILE_SIZE = 5 * 1024 * 1024  # 5MB
-BASE_MODEL = "ButterflyCatGirl/Blip-Streamlit-chatbot"  # Using base model
+BASE_MODEL = "Salesforce/blip-vqa-base"  # Using base model
 
 class AccurateMedicalVQA:
     """Accurate Medical VQA System with Enhanced Translation"""
