@@ -20,7 +20,7 @@ MAX_IMAGE_DIM = 512  # Higher resolution for medical details
 SUPPORTED_FORMATS = ["jpg", "jpeg", "png"]
 MAX_FILE_SIZE = 5 * 1024 * 1024  # 5MB
 FINE_TUNED_MODEL = "ButterflyCatGirl/Blip-Streamlit-chatbot"
-MEDICAL_FALLBACK_MODEL = "medclip/blip-vqa-med"
+MEDICAL_FALLBACK_MODEL = "blip-vqa-medical-final"
 
 class AccurateMedicalVQA:
     """Accurate Medical VQA System with Enhanced Responses"""
