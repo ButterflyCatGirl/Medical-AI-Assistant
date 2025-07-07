@@ -19,7 +19,7 @@ logger = logging.getLogger(__name__)
 MAX_IMAGE_DIM = 512  # Higher resolution for medical details
 SUPPORTED_FORMATS = ["jpg", "jpeg", "png"]
 MAX_FILE_SIZE = 5 * 1024 * 1024  # 5MB
-BASE_MODEL = "ButterflyCatGirl/Blip-Streamlit-chatbot"  # Official base model
+BASE_MODEL = "Salesforce/blip-vqa-base"  # Official base model
 
 class AccurateMedicalVQA:
     """Accurate Medical VQA System with Enhanced Translation"""
@@ -29,6 +29,7 @@ class AccurateMedicalVQA:
         self.model = None
         self.device = self._get_device()
         self.translation_models_loaded = False
+        self.original_question = ""
         
     def _get_device(self) -> str:
         """Get optimal device"""
@@ -37,16 +38,16 @@ class AccurateMedicalVQA:
         return "cpu"
     
     def _load_translation_models(self):
-        """Load translation models"""
+        """Load translation models on CPU for efficiency"""
         try:
             logger.info("Loading translation models...")
             # Arabic to English translation
             self.ar_en_tokenizer = MarianTokenizer.from_pretrained("Helsinki-NLP/opus-mt-ar-en")
-            self.ar_en_model = MarianMTModel.from_pretrained("Helsinki-NLP/opus-mt-ar-en").to(self.device)
+            self.ar_en_model = MarianMTModel.from_pretrained("Helsinki-NLP/opus-mt-ar-en")
             
             # English to Arabic translation
             self.en_ar_tokenizer = MarianTokenizer.from_pretrained("Helsinki-NLP/opus-mt-en-ar")
-            self.en_ar_model = MarianMTModel.from_pretrained("Helsinki-NLP/opus-mt-en-ar").to(self.device)
+            self.en_ar_model = MarianMTModel.from_pretrained("Helsinki-NLP/opus-mt-en-ar")
             
             logger.info("Translation models loaded successfully")
             self.translation_models_loaded = True
@@ -64,7 +65,7 @@ class AccurateMedicalVQA:
             self._load_translation_models()
         
         try:
-            inputs = self.ar_en_tokenizer(text, return_tensors="pt", padding=True, truncation=True).to(self.device)
+            inputs = self.ar_en_tokenizer(text, return_tensors="pt", padding=True, truncation=True)
             translated = self.ar_en_model.generate(**inputs)
             return self.ar_en_tokenizer.decode(translated[0], skip_special_tokens=True)
         except Exception as e:
@@ -80,7 +81,7 @@ class AccurateMedicalVQA:
             self._load_translation_models()
         
         try:
-            inputs = self.en_ar_tokenizer(text, return_tensors="pt", padding=True, truncation=True).to(self.device)
+            inputs = self.en_ar_tokenizer(text, return_tensors="pt", padding=True, truncation=True)
             translated = self.en_ar_model.generate(**inputs)
             return self.en_ar_tokenizer.decode(translated[0], skip_special_tokens=True)
         except Exception as e:
@@ -128,11 +129,6 @@ class AccurateMedicalVQA:
             except Exception as alt_e:
                 logger.error(f"Alternative loading failed: {str(alt_e)}")
                 return False
-    
-    def _detect_language(self, text: str) -> str:
-        """Fast language detection"""
-        arabic_chars = sum(1 for c in text if '\u0600' <= c <= '\u06FF')
-        return "ar" if arabic_chars > 0 else "en"
     
     def _process_image_optimized(self, image: Image.Image) -> Image.Image:
         """Medical-optimized image processing"""
@@ -184,19 +180,19 @@ class AccurateMedicalVQA:
         
         return min(0.95, max(0.5, certainty_count / total_terms))
     
-    def process_query(self, image: Image.Image, question: str) -> Dict[str, Any]:
+    def process_query(self, image: Image.Image, question: str, language: str) -> Dict[str, Any]:
         """Process query with translation approach"""
         try:
             start_time = time.time()
             
+            # Store original question for display
+            self.original_question = question
+            
             # Process image
             image = self._process_image_optimized(image)
             
-            # Detect language
-            detected_lang = self._detect_language(question)
-            
             # Translate question to English if needed
-            if detected_lang == "ar":
+            if language == "ar":
                 english_question = self.translate_ar_to_en(question)
                 logger.info(f"Translated question: {question} -> {english_question}")
             else:
@@ -237,18 +233,21 @@ class AccurateMedicalVQA:
             if not answer_en or len(answer_en) < 5:
                 answer_en = "Unable to provide a clear medical analysis from this image. Please consult a healthcare professional."
             
-            # Translate answer to Arabic
-            answer_ar = self.translate_en_to_ar(answer_en)
+            # Translate answer to Arabic if needed
+            if language == "ar":
+                answer_ar = self.translate_en_to_ar(answer_en)
+            else:
+                answer_ar = answer_en
             
             # Calculate confidence
             confidence = self._calculate_confidence(answer_en)
             processing_time = time.time() - start_time
             
             return {
-                "question": question,
+                "question": self.original_question,
                 "answer_en": answer_en,
                 "answer_ar": answer_ar,
-                "detected_language": detected_lang,
+                "language": language,
                 "processing_time": processing_time,
                 "confidence": confidence,
                 "success": True
@@ -422,7 +421,8 @@ def main():
         language = st.selectbox(
             "Language:",
             options=["ar", "en"],
-            format_func=lambda x: "🇪🇬 العربية" if x == "ar" else "🇺🇸 English"
+            format_func=lambda x: "🇪🇬 العربية" if x == "ar" else "🇺🇸 English",
+            key="lang_selector"
         )
         
         # Question input
@@ -436,7 +436,8 @@ def main():
         question = st.text_area(
             label,
             height=100,
-            placeholder=placeholder
+            placeholder=placeholder,
+            key="question_input"
         )
         
         # Analyze button
@@ -449,7 +450,7 @@ def main():
                 with st.spinner("🧠 Analyzing with medical AI..."):
                     try:
                         image = Image.open(uploaded_file)
-                        result = vqa_system.process_query(image, question)
+                        result = vqa_system.process_query(image, question, language)
                         
                         if result["success"]:
                             st.markdown("---")
@@ -460,7 +461,7 @@ def main():
                             <div class="accuracy-indicator">
                                 ✅ <strong>Analysis Complete</strong> | 
                                 ⏱️ <strong>{result['processing_time']:.2f}s</strong> | 
-                                🔍 <strong>{'Arabic' if result['detected_language'] == 'ar' else 'English'}</strong> |
+                                🔍 <strong>{'Arabic' if result['language'] == 'ar' else 'English'}</strong> |
                                 🎯 <strong>Confidence: {result['confidence']*100:.1f}%</strong>
                             </div>
                             """, unsafe_allow_html=True)
@@ -473,24 +474,40 @@ def main():
                             """, unsafe_allow_html=True)
                             
                             # Results
-                            res_col1, res_col2 = st.columns(2)
-                            
-                            with res_col1:
-                                st.markdown("**🇺🇸 English Analysis**")
-                                st.markdown(f"**Q:** {result['question']}")
-                                st.markdown(f"**Medical Finding:** {result['answer_en']}")
-                            
-                            with res_col2:
-                                st.markdown("**🇪🇬 التحليل الطبي بالعربية**")
+                            if language == "ar":
+                                # Display in Arabic
+                                st.markdown("**🇪🇬 التحليل الطبي**")
                                 st.markdown(f"""
                                 <div class="arabic-text">
                                     <strong>السؤال:</strong> {result['question']}<br><br>
                                     <strong>النتيجة الطبية:</strong> {result['answer_ar']}
                                 </div>
                                 """, unsafe_allow_html=True)
+                                
+                                # Also show English version for reference
+                                with st.expander("🇺🇸 English Version"):
+                                    st.markdown(f"**Question:** {result['question']}")
+                                    st.markdown(f"**Medical Finding:** {result['answer_en']}")
+                            else:
+                                # Display in English
+                                st.markdown("**🇺🇸 English Analysis**")
+                                st.markdown(f"**Question:** {result['question']}")
+                                st.markdown(f"**Medical Finding:** {result['answer_en']}")
+                                
+                                # Also show Arabic version for reference
+                                with st.expander("🇪🇬 النسخة العربية"):
+                                    st.markdown(f"""
+                                    <div class="arabic-text">
+                                        <strong>السؤال:</strong> {result['question']}<br><br>
+                                        <strong>النتيجة الطبية:</strong> {result['answer_ar']}
+                                    </div>
+                                    """, unsafe_allow_html=True)
                             
                             # Medical disclaimer
-                            st.warning("⚠️ **للأغراض التعليمية فقط - استشر طبيب مختص للتشخيص النهائي**")
+                            if language == "ar":
+                                st.warning("⚠️ **للأغراض التعليمية فقط - استشر طبيب مختص للتشخيص النهائي**")
+                            else:
+                                st.warning("⚠️ **For educational purposes only - consult a specialist doctor for final diagnosis**")
                             
                         else:
                             st.error(f"❌ Analysis failed: {result.get('error', 'Unknown')}")
