@@ -20,19 +20,14 @@ logger = logging.getLogger(__name__)
 MAX_IMAGE_DIM = 512
 SUPPORTED_FORMATS = ["jpg", "jpeg", "png"]
 MAX_FILE_SIZE = 5 * 1024 * 1024  # 5MB
-# Use a reliable base model with fallback
-BASE_MODELS = [
-    "blip-vqa-medical-final"
-  #  "mennahhhh/mobilenet-t5-vqa"
-  #  "Salesforce/blip-vqa-base",  # More reliable base model
-   # "ButterflyCatGirl/Blip-Streamlit-chatbot"  # Fallback to custom model
-]
+# Use only reliable base model
+BASE_MODEL = "Salesforce/blip-vqa-base"
 
 # Medical term dictionaries for validation
 MEDICAL_TERMS_EN = {
     "fracture", "tumor", "infection", "pneumonia", "edema", 
     "cardiomegaly", "opacity", "consolidation", "effusion", 
-    "nodule", "atelectasis", "cardiomegaly", "hernia"
+    "nodule", "atelectasis", "hernia"
 }
 
 MEDICAL_TERMS_AR = {
@@ -51,7 +46,6 @@ class AccurateMedicalVQA:
         self.translation_models_loaded = False
         self.translation_cache = {}
         self.model_loading_error = None
-        self.loaded_model_name = None
         self.load_status = "Not Loaded"
         
     def _get_device(self) -> str:
@@ -192,52 +186,37 @@ class AccurateMedicalVQA:
             return text
 
     def load_model(self):
-        """Load model with robust error handling and fallback"""
-        success = False
-        last_error = None
-        
-        for model_name in BASE_MODELS:
-            try:
-                logger.info(f"Attempting to load model: {model_name}")
-                
-                # Load processor and model
-                self.processor = BlipProcessor.from_pretrained(model_name)
-                
-                # Handle device and precision
-                if self.device == "cpu":
-                    self.model = BlipForQuestionAnswering.from_pretrained(
-                        model_name,
-                        torch_dtype=torch.float32
-                    )
-                else:
-                    self.model = BlipForQuestionAnswering.from_pretrained(
-                        model_name,
-                        torch_dtype=torch.float16
-                    )
-                
-                self.model = self.model.to(self.device)
-                self.model.eval()
-                
-                logger.info(f"Model loaded successfully on {self.device}")
-                self.loaded_model_name = model_name
-                self.load_status = f"Loaded: {model_name}"
-                success = True
-                break
-                
-            except Exception as e:
-                logger.error(f"Failed to load {model_name}: {str(e)}")
-                last_error = str(e)
-                # Clear any partial state
-                self.processor = None
-                self.model = None
-                # Try next model
-        
-        if not success:
-            logger.error(f"All model loading attempts failed")
-            self.model_loading_error = last_error
+        """Load model with robust error handling"""
+        try:
+            logger.info(f"Loading model: {BASE_MODEL}")
+            
+            # Load processor and model
+            self.processor = BlipProcessor.from_pretrained(BASE_MODEL)
+            
+            # Handle device and precision
+            if self.device == "cpu":
+                self.model = BlipForQuestionAnswering.from_pretrained(
+                    BASE_MODEL,
+                    torch_dtype=torch.float32
+                )
+            else:
+                self.model = BlipForQuestionAnswering.from_pretrained(
+                    BASE_MODEL,
+                    torch_dtype=torch.float16
+                )
+            
+            self.model = self.model.to(self.device)
+            self.model.eval()
+            
+            logger.info(f"Model loaded successfully on {self.device}")
+            self.load_status = f"Loaded: {BASE_MODEL}"
+            return True
+            
+        except Exception as e:
+            logger.error(f"Model loading failed: {str(e)}")
+            self.model_loading_error = str(e)
             self.load_status = "Failed to load"
-        
-        return success
+            return False
 
     def _detect_language(self, text: str) -> str:
         """Fast language detection"""
@@ -511,23 +490,26 @@ def main():
             st.write(f"**Current GPU:** {torch.cuda.get_device_name(0)}")
         st.write(f"**Hugging Face cache:** {os.getenv('TRANSFORMERS_CACHE', 'Default')}")
         st.write(f"**Model Status:** {vqa_system.load_status}")
+        st.write(f"**Base Model:** {BASE_MODEL}")
     
     # Load model if not loaded
     if vqa_system.model is None:
         with st.spinner("🔄 Loading medical model..."):
             success = vqa_system.load_model()
             if success:
-                st.success(f"✅ Medical model loaded successfully! (Using: {vqa_system.loaded_model_name})")
+                st.success(f"✅ Medical model loaded successfully!")
                 st.balloons()
             else:
                 st.error("❌ Model loading failed. Please check the following:")
                 st.error("1. Verify internet connection (models download from Hugging Face)")
-                st.error("2. Try a smaller model or different approach")
-                st.error("3. Check server logs for detailed error message")
+                st.error("2. Check server logs for detailed error message")
                 
                 # Show detailed error
                 st.markdown("### Detailed Error Information")
-                st.code(vqa_system.model_loading_error, language="text")
+                if vqa_system.model_loading_error:
+                    st.code(vqa_system.model_loading_error, language="text")
+                else:
+                    st.warning("No detailed error information available")
                 
                 # Troubleshooting guide
                 with st.expander("Troubleshooting Guide"):
@@ -539,9 +521,9 @@ def main():
                        - Ensure your server has internet access
                        - If behind a firewall, whitelist `huggingface.co`
                     
-                    2. **Reduce Model Size**:
-                       - We're trying smaller models automatically
-                       - If issues persist, consider using CPU-only mode
+                    2. **Verify Model Availability**: 
+                       - Visit the model repository to confirm it's accessible:
+                       - [Salesforce/blip-vqa-base on Hugging Face](https://huggingface.co/Salesforce/blip-vqa-base)
                     
                     3. **Increase Resources**:
                        - If running locally, try with GPU
@@ -551,8 +533,8 @@ def main():
                        - Streamlit caches models, which can sometimes cause issues
                        - Try clearing cache with `streamlit cache clear`
                     
-                    5. **Alternative Models**:
-                       - We'll attempt to use a simpler model as a fallback
+                    5. **Alternative Approach**:
+                       - Consider using a different model architecture
                     """)
                 
                 st.stop()
@@ -627,109 +609,4 @@ def main():
                     st.warning("Translation preview unavailable")
         
         # Analyze button
-        if st.button("🔍 Analyze Medical Image", use_container_width=True):
-            if not uploaded_file:
-                st.warning("⚠️ Upload image first")
-            elif not question.strip():
-                st.warning("⚠️ Enter question")
-            else:
-                with st.spinner("🧠 Analyzing with medical AI..."):
-                    try:
-                        image = Image.open(uploaded_file)
-                        result = vqa_system.process_query(image, question)
-                        
-                        if result["success"]:
-                            st.markdown("---")
-                            st.markdown("### 🎯 Medical Analysis Results")
-                            
-                            # Processing time and accuracy indicator
-                            st.markdown(f"""
-                            <div class="accuracy-indicator">
-                                ✅ <strong>Analysis Complete</strong> | 
-                                ⏱️ <strong>{result['processing_time']:.2f}s</strong> | 
-                                🔍 <strong>{'Arabic' if result['detected_language'] == 'ar' else 'English'}</strong> |
-                                🎯 <strong>Confidence: {result['confidence']*100:.1f}%</strong>
-                            </div>
-                            """, unsafe_allow_html=True)
-                            
-                            # Confidence visual
-                            st.markdown(f"""
-                            <div class="confidence-bar">
-                                <div class="confidence-fill" style="width: {result['confidence']*100}%;"></div>
-                            </div>
-                            """, unsafe_allow_html=True)
-                            
-                            # Results
-                            res_col1, res_col2 = st.columns(2)
-                            
-                            with res_col1:
-                                st.markdown("**🇺🇸 English Analysis**")
-                                st.markdown(f"**Q:** {result['question']}")
-                                st.markdown(f"**Medical Finding:** {result['answer_en']}")
-                            
-                            with res_col2:
-                                st.markdown("**🇪🇬 التحليل الطبي بالعربية**")
-                                st.markdown(f"""
-                                <div class="arabic-text">
-                                    <strong>السؤال:</strong> {result['question']}<br><br>
-                                    <strong>النتيجة الطبية:</strong> {result['answer_ar']}
-                                </div>
-                                """, unsafe_allow_html=True)
-                            
-                            # Medical disclaimer
-                            st.warning("⚠️ **للأغراض التعليمية فقط - استشر طبيب مختص للتشخيص النهائي**")
-                            
-                        else:
-                            st.error(f"❌ Analysis failed: {result.get('error', 'Unknown')}")
-                    
-                    except Exception as e:
-                        st.error(f"❌ Processing error: {str(e)}")
-    
-    # Enhanced sidebar with translation info
-    with st.sidebar:
-        st.markdown("### 🧬 System Status")
-        
-        if vqa_system.model is not None:
-            st.success(f"✅ Model: Ready ({vqa_system.loaded_model_name})")
-            st.info(f"🖥️ Device: {vqa_system.device.upper()}")
-            if vqa_system.translation_models_loaded:
-                st.success("🌐 Translation: Active")
-            else:
-                st.warning("⚠️ Translation: Partially Loaded")
-        else:
-            st.error("❌ Model: Not Ready")
-        
-        st.markdown("---")
-        st.markdown("### 🔧 Configuration")
-        st.info(f"**Max Image Dim:** {MAX_IMAGE_DIM}px")
-        st.info(f"**Max File Size:** {MAX_FILE_SIZE//1024//1024}MB")
-        st.info(f"**Supported Formats:** {', '.join(SUPPORTED_FORMATS)}")
-        
-        st.markdown("---")
-        st.markdown("""
-        **🩺 Medical Term Validation:**
-        - 2-step translation process
-        - Medical dictionary matching
-        - Context-aware corrections
-        
-        **📋 Best Practices:**
-        1. Upload clear medical images
-        2. Ask specific questions
-        3. Use medical terminology
-        4. Specify body parts/regions
-        """)
-        
-        st.markdown("---")
-        st.markdown("**⚠️ Medical Disclaimer**")
-        st.caption("This AI provides preliminary analysis for educational purposes. Always consult qualified healthcare professionals for medical diagnosis and treatment decisions.")
-    
-    # Footer
-    st.markdown("---")
-    st.markdown("""
-    <div style='text-align: center; color: #666;'>
-        <p><strong>Medical VQA with Enhanced Translation v3.1</strong> | Optimized for Reliability</p>
-    </div>
-    """, unsafe_allow_html=True)
-
-if __name__ == "__main__":
-    main()
+        if st.button("🔍 Analy
