@@ -19,7 +19,7 @@ logger = logging.getLogger(__name__)
 MAX_IMAGE_SIZE = (256, 256)  # Faster processing
 SUPPORTED_FORMATS = ["jpg", "jpeg", "png"]
 MAX_FILE_SIZE = 5 * 1024 * 1024  # 5MB
-FINE_TUNED_MODEL = "sharawy53/blip-vqa-medical-arabic"
+FINE_TUNED_MODEL = "ButterflyCatGirl/Blip-Streamlit-chatbot"
 
 class MedicalVQAOptimized:
     """Optimized medical VQA system"""
