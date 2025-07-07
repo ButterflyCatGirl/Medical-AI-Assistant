@@ -46,10 +46,12 @@ class MedicalVQA:
         translated = ar_en_model.generate(**inputs)
         return ar_en_tokenizer.decode(translated[0], skip_special_tokens=True)
 
-    def translate_en_to_ar(self, text):
-        inputs = en_ar_tokenizer(text, return_tensors="pt", padding=True, truncation=True)
-        translated = en_ar_model.generate(**inputs)
-        return en_ar_tokenizer.decode(translated[0], skip_special_tokens=True)
+    def _translate_to_arabic_medical(self, text_en: str) -> str:
+        """Fallback dictionary-based translation"""
+        return " ".join([
+            self.medical_terms.get(word.lower(), word)
+            for word in text_en.split()
+        ])
 
     def process_image(self, image):
         if image.mode != "RGB":
