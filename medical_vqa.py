@@ -7,6 +7,7 @@ import logging
 import time
 import re
 import warnings
+from typing import Dict, Any  # Add this import for type hints
 
 # Suppress warnings
 warnings.filterwarnings("ignore")
