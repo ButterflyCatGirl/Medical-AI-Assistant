@@ -50,6 +50,7 @@ class AccurateMedicalVQA:
         self.translation_cache = {}
         self.model_loading_error = None
         self.loaded_model_name = None
+        self.load_status = "Not Loaded"
         
     def _get_device(self) -> str:
         return "cuda" if torch.cuda.is_available() else "cpu"
@@ -188,8 +189,7 @@ class AccurateMedicalVQA:
             logger.error(f"English to Arabic translation failed: {str(e)}")
             return text
 
-    @st.cache_resource(show_spinner=False)
-    def load_model(_self):
+    def load_model(self):
         """Load model with robust error handling and fallback"""
         success = False
         last_error = None
@@ -199,25 +199,26 @@ class AccurateMedicalVQA:
                 logger.info(f"Attempting to load model: {model_name}")
                 
                 # Load processor and model
-                _self.processor = BlipProcessor.from_pretrained(model_name)
+                self.processor = BlipProcessor.from_pretrained(model_name)
                 
                 # Handle device and precision
-                if _self.device == "cpu":
-                    _self.model = BlipForQuestionAnswering.from_pretrained(
+                if self.device == "cpu":
+                    self.model = BlipForQuestionAnswering.from_pretrained(
                         model_name,
                         torch_dtype=torch.float32
                     )
                 else:
-                    _self.model = BlipForQuestionAnswering.from_pretrained(
+                    self.model = BlipForQuestionAnswering.from_pretrained(
                         model_name,
                         torch_dtype=torch.float16
                     )
                 
-                _self.model = _self.model.to(_self.device)
-                _self.model.eval()
+                self.model = self.model.to(self.device)
+                self.model.eval()
                 
-                logger.info(f"Model loaded successfully on {_self.device}")
-                _self.loaded_model_name = model_name
+                logger.info(f"Model loaded successfully on {self.device}")
+                self.loaded_model_name = model_name
+                self.load_status = f"Loaded: {model_name}"
                 success = True
                 break
                 
@@ -225,16 +226,16 @@ class AccurateMedicalVQA:
                 logger.error(f"Failed to load {model_name}: {str(e)}")
                 last_error = str(e)
                 # Clear any partial state
-                _self.processor = None
-                _self.model = None
+                self.processor = None
+                self.model = None
                 # Try next model
         
         if not success:
             logger.error(f"All model loading attempts failed")
-            _self.model_loading_error = last_error
-            return False, last_error
+            self.model_loading_error = last_error
+            self.load_status = "Failed to load"
         
-        return True, "Success"
+        return success
 
     def _detect_language(self, text: str) -> str:
         """Fast language detection"""
@@ -507,11 +508,12 @@ def main():
         if torch.cuda.is_available():
             st.write(f"**Current GPU:** {torch.cuda.get_device_name(0)}")
         st.write(f"**Hugging Face cache:** {os.getenv('TRANSFORMERS_CACHE', 'Default')}")
+        st.write(f"**Model Status:** {vqa_system.load_status}")
     
-    # Load model
+    # Load model if not loaded
     if vqa_system.model is None:
         with st.spinner("🔄 Loading medical model..."):
-            success, message = vqa_system.load_model()
+            success = vqa_system.load_model()
             if success:
                 st.success(f"✅ Medical model loaded successfully! (Using: {vqa_system.loaded_model_name})")
                 st.balloons()
@@ -523,9 +525,7 @@ def main():
                 
                 # Show detailed error
                 st.markdown("### Detailed Error Information")
-                st.markdown("```")
-                st.error(f"Error details: {vqa_system.model_loading_error}")
-                st.markdown("```")
+                st.code(vqa_system.model_loading_error, language="text")
                 
                 # Troubleshooting guide
                 with st.expander("Troubleshooting Guide"):
