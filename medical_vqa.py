@@ -21,7 +21,7 @@ MAX_IMAGE_DIM = 512  # Higher resolution for medical details
 SUPPORTED_FORMATS = ["jpg", "jpeg", "png"]
 MAX_FILE_SIZE = 5 * 1024 * 1024  # 5MB
 BASE_MODEL = "Salesforce/blip-vqa-base"  # Using base model instead of custom
-MEDICAL_FALLBACK_MODEL = "medclip/blip-base-patch32_med"  # Corrected model ID
+MEDICAL_FALLBACK_MODEL = "ButterflyCatGirl/Blip-Streamlit-chatbot"  # Corrected model ID
 
 class AccurateMedicalVQA:
     """Accurate Medical VQA System with Enhanced Responses"""
