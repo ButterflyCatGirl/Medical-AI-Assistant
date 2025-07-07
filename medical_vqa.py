@@ -25,7 +25,7 @@ BASE_MODELS = [
     "blip-vqa-medical-final"
     "mennahhhh/mobilenet-t5-vqa"
     "Salesforce/blip-vqa-base",  # More reliable base model
-    "ButterflyCatGirl/Blip-Streamlit-chatbot"  # Fallback to custom model
+   # "ButterflyCatGirl/Blip-Streamlit-chatbot"  # Fallback to custom model
 ]
 
 # Medical term dictionaries for validation
