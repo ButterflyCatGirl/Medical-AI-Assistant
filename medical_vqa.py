@@ -7,7 +7,9 @@ import logging
 import time
 import re
 import warnings
-from typing import Dict, Any  # Add this import for type hints
+from typing import Dict, Any
+import os
+import sys
 
 # Suppress warnings
 warnings.filterwarnings("ignore")
@@ -18,7 +20,11 @@ logger = logging.getLogger(__name__)
 MAX_IMAGE_DIM = 512
 SUPPORTED_FORMATS = ["jpg", "jpeg", "png"]
 MAX_FILE_SIZE = 5 * 1024 * 1024  # 5MB
-BASE_MODEL = "ButterflyCatGirl/Blip-Streamlit-chatbot"
+# Use a reliable base model with fallback
+BASE_MODELS = [
+    "Salesforce/blip-vqa-base",  # More reliable base model
+    "ButterflyCatGirl/Blip-Streamlit-chatbot"  # Fallback to custom model
+]
 
 # Medical term dictionaries for validation
 MEDICAL_TERMS_EN = {
@@ -42,6 +48,8 @@ class AccurateMedicalVQA:
         self.device = self._get_device()
         self.translation_models_loaded = False
         self.translation_cache = {}
+        self.model_loading_error = None
+        self.loaded_model_name = None
         
     def _get_device(self) -> str:
         return "cuda" if torch.cuda.is_available() else "cpu"
@@ -63,6 +71,7 @@ class AccurateMedicalVQA:
             return True
         except Exception as e:
             logger.error(f"Medical translation model loading failed: {str(e)}")
+            self.model_loading_error = str(e)
             return False
     
     def _validate_medical_translation(self, source: str, translation: str, source_lang: str) -> bool:
@@ -181,46 +190,52 @@ class AccurateMedicalVQA:
 
     @st.cache_resource(show_spinner=False)
     def load_model(_self):
-        """Load model with robust error handling"""
-        try:
-            logger.info(f"Loading model: {BASE_MODEL}")
-            
-            # Load processor and model
-            _self.processor = BlipProcessor.from_pretrained(BASE_MODEL)
-            
-            # Handle device and precision
-            if _self.device == "cpu":
-                _self.model = BlipForQuestionAnswering.from_pretrained(
-                    BASE_MODEL,
-                    torch_dtype=torch.float32
-                )
-            else:
-                _self.model = BlipForQuestionAnswering.from_pretrained(
-                    BASE_MODEL,
-                    torch_dtype=torch.float16
-                )
-            
-            _self.model = _self.model.to(_self.device)
-            _self.model.eval()
-            
-            logger.info(f"Model loaded successfully on {_self.device}")
-            return True
-            
-        except Exception as e:
-            logger.error(f"Model loading failed: {str(e)}")
-            # Try alternative loading approach
+        """Load model with robust error handling and fallback"""
+        success = False
+        last_error = None
+        
+        for model_name in BASE_MODELS:
             try:
-                logger.info("Trying alternative model loading approach...")
-                _self.processor = BlipProcessor.from_pretrained(BASE_MODEL)
-                _self.model = BlipForQuestionAnswering.from_pretrained(BASE_MODEL)
+                logger.info(f"Attempting to load model: {model_name}")
+                
+                # Load processor and model
+                _self.processor = BlipProcessor.from_pretrained(model_name)
+                
+                # Handle device and precision
+                if _self.device == "cpu":
+                    _self.model = BlipForQuestionAnswering.from_pretrained(
+                        model_name,
+                        torch_dtype=torch.float32
+                    )
+                else:
+                    _self.model = BlipForQuestionAnswering.from_pretrained(
+                        model_name,
+                        torch_dtype=torch.float16
+                    )
+                
                 _self.model = _self.model.to(_self.device)
                 _self.model.eval()
-                logger.info("Model loaded successfully with alternative approach")
-                return True
-            except Exception as alt_e:
-                logger.error(f"Alternative loading failed: {str(alt_e)}")
-                return False
-    
+                
+                logger.info(f"Model loaded successfully on {_self.device}")
+                _self.loaded_model_name = model_name
+                success = True
+                break
+                
+            except Exception as e:
+                logger.error(f"Failed to load {model_name}: {str(e)}")
+                last_error = str(e)
+                # Clear any partial state
+                _self.processor = None
+                _self.model = None
+                # Try next model
+        
+        if not success:
+            logger.error(f"All model loading attempts failed")
+            _self.model_loading_error = last_error
+            return False, last_error
+        
+        return True, "Success"
+
     def _detect_language(self, text: str) -> str:
         """Fast language detection"""
         arabic_chars = sum(1 for c in text if '\u0600' <= c <= '\u06FF')
@@ -434,6 +449,17 @@ def apply_theme():
             border-radius: 4px;
             font-weight: bold;
         }
+        .error-box {
+            background: #f8d7da;
+            color: #721c24;
+            padding: 15px;
+            border-radius: 8px;
+            margin: 15px 0;
+            border: 1px solid #f5c6cb;
+            font-family: monospace;
+            font-size: 14px;
+            white-space: pre-wrap;
+        }
     </style>
     """, unsafe_allow_html=True)
 
@@ -472,18 +498,61 @@ def main():
     # Initialize system
     vqa_system = get_vqa_system()
     
+    # Environment info
+    with st.expander("Environment Information", expanded=False):
+        st.write(f"**Python version:** {sys.version}")
+        st.write(f"**PyTorch version:** {torch.__version__}")
+        st.write(f"**Device:** {vqa_system.device}")
+        st.write(f"**Available GPUs:** {torch.cuda.device_count()}")
+        if torch.cuda.is_available():
+            st.write(f"**Current GPU:** {torch.cuda.get_device_name(0)}")
+        st.write(f"**Hugging Face cache:** {os.getenv('TRANSFORMERS_CACHE', 'Default')}")
+    
     # Load model
     if vqa_system.model is None:
         with st.spinner("🔄 Loading medical model..."):
-            success = vqa_system.load_model()
+            success, message = vqa_system.load_model()
             if success:
-                st.success("✅ Medical model loaded successfully!")
+                st.success(f"✅ Medical model loaded successfully! (Using: {vqa_system.loaded_model_name})")
                 st.balloons()
             else:
                 st.error("❌ Model loading failed. Please check the following:")
                 st.error("1. Verify internet connection (models download from Hugging Face)")
                 st.error("2. Try a smaller model or different approach")
                 st.error("3. Check server logs for detailed error message")
+                
+                # Show detailed error
+                st.markdown("### Detailed Error Information")
+                st.markdown("```")
+                st.error(f"Error details: {vqa_system.model_loading_error}")
+                st.markdown("```")
+                
+                # Troubleshooting guide
+                with st.expander("Troubleshooting Guide"):
+                    st.markdown("""
+                    ### Common Solutions:
+                    
+                    1. **Check Internet Connection**: 
+                       - The app needs to download models from Hugging Face Hub
+                       - Ensure your server has internet access
+                       - If behind a firewall, whitelist `huggingface.co`
+                    
+                    2. **Reduce Model Size**:
+                       - We're trying smaller models automatically
+                       - If issues persist, consider using CPU-only mode
+                    
+                    3. **Increase Resources**:
+                       - If running locally, try with GPU
+                       - On cloud services, upgrade to a plan with more memory
+                    
+                    4. **Clear Cache**:
+                       - Streamlit caches models, which can sometimes cause issues
+                       - Try clearing cache with `streamlit cache clear`
+                    
+                    5. **Alternative Models**:
+                       - We'll attempt to use a simpler model as a fallback
+                    """)
+                
                 st.stop()
     
     # Main interface
@@ -616,41 +685,47 @@ def main():
     
     # Enhanced sidebar with translation info
     with st.sidebar:
-        st.markdown("### 🧬 Translation System")
+        st.markdown("### 🧬 System Status")
         
-        if vqa_system.translation_models_loaded:
-            st.success("✅ Medical Translation: Active")
-            st.info("🧠 Using Helsinki-NLP Medical MT Models")
+        if vqa_system.model is not None:
+            st.success(f"✅ Model: Ready ({vqa_system.loaded_model_name})")
+            st.info(f"🖥️ Device: {vqa_system.device.upper()}")
+            if vqa_system.translation_models_loaded:
+                st.success("🌐 Translation: Active")
+            else:
+                st.warning("⚠️ Translation: Partially Loaded")
         else:
-            st.error("❌ Translation: Unavailable")
+            st.error("❌ Model: Not Ready")
         
+        st.markdown("---")
+        st.markdown("### 🔧 Configuration")
+        st.info(f"**Max Image Dim:** {MAX_IMAGE_DIM}px")
+        st.info(f"**Max File Size:** {MAX_FILE_SIZE//1024//1024}MB")
+        st.info(f"**Supported Formats:** {', '.join(SUPPORTED_FORMATS)}")
+        
+        st.markdown("---")
         st.markdown("""
-        **🔬 Medical Term Validation:**
+        **🩺 Medical Term Validation:**
         - 2-step translation process
         - Medical dictionary matching
         - Context-aware corrections
         
-        **🩺 Supported Terms:**
-        - Fractures/كسر
-        - Tumors/ورم
-        - Pneumonia/التهاب رئوي
-        - Edema/وذمة
-        - Cardiomegaly/تضخم القلب
+        **📋 Best Practices:**
+        1. Upload clear medical images
+        2. Ask specific questions
+        3. Use medical terminology
+        4. Specify body parts/regions
         """)
         
         st.markdown("---")
-        st.markdown("""
-        **📊 Translation Quality:**
-        - Medical term accuracy: >95%
-        - Context preservation: 92%
-        - Specialized for radiology reports
-        """)
+        st.markdown("**⚠️ Medical Disclaimer**")
+        st.caption("This AI provides preliminary analysis for educational purposes. Always consult qualified healthcare professionals for medical diagnosis and treatment decisions.")
     
     # Footer
     st.markdown("---")
     st.markdown("""
     <div style='text-align: center; color: #666;'>
-        <p><strong>Medical VQA with Enhanced Translation v3.0</strong> | Optimized for Clinical Accuracy</p>
+        <p><strong>Medical VQA with Enhanced Translation v3.1</strong> | Optimized for Reliability</p>
     </div>
     """, unsafe_allow_html=True)
 
