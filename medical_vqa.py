@@ -9,6 +9,7 @@ import gc
 from typing import Optional, Dict, Any
 import warnings
 import re
+import os
 
 # Suppress warnings
 warnings.filterwarnings("ignore")
@@ -19,8 +20,8 @@ logger = logging.getLogger(__name__)
 MAX_IMAGE_DIM = 512  # Higher resolution for medical details
 SUPPORTED_FORMATS = ["jpg", "jpeg", "png"]
 MAX_FILE_SIZE = 5 * 1024 * 1024  # 5MB
-FINE_TUNED_MODEL = "ButterflyCatGirl/Blip-Streamlit-chatbot"
-MEDICAL_FALLBACK_MODEL = "blip-vqa-medical-final"
+BASE_MODEL = "Salesforce/blip-vqa-base"  # Using base model instead of custom
+MEDICAL_FALLBACK_MODEL = "medclip/blip-base-patch32_med"  # Corrected model ID
 
 class AccurateMedicalVQA:
     """Accurate Medical VQA System with Enhanced Responses"""
@@ -84,12 +85,13 @@ class AccurateMedicalVQA:
     
     @st.cache_resource(show_spinner=False)
     def load_model(_self):
-        """Load fine-tuned model with caching"""
+        """Load model with robust error handling"""
         try:
-            logger.info(f"Loading fine-tuned model: {FINE_TUNED_MODEL}")
+            # First try to load the base model
+            logger.info(f"Loading base model: {BASE_MODEL}")
             
-            # Load with optimizations
-            _self.processor = BlipProcessor.from_pretrained(FINE_TUNED_MODEL)
+            # Load processor and model
+            _self.processor = BlipProcessor.from_pretrained(BASE_MODEL)
             
             # Set pad token properly
             if _self.processor.tokenizer.pad_token is None:
@@ -97,13 +99,13 @@ class AccurateMedicalVQA:
             
             if _self.device == "cpu":
                 _self.model = BlipForConditionalGeneration.from_pretrained(
-                    FINE_TUNED_MODEL,
+                    BASE_MODEL,
                     torch_dtype=torch.float32,
                     low_cpu_mem_usage=True
                 )
             else:
                 _self.model = BlipForConditionalGeneration.from_pretrained(
-                    FINE_TUNED_MODEL,
+                    BASE_MODEL,
                     torch_dtype=torch.float16,
                     low_cpu_mem_usage=True
                 )
@@ -111,13 +113,14 @@ class AccurateMedicalVQA:
             _self.model = _self.model.to(_self.device)
             _self.model.eval()
             
-            logger.info(f"Model loaded successfully on {_self.device}")
+            logger.info(f"Base model loaded successfully on {_self.device}")
             return True
             
         except Exception as e:
-            logger.error(f"Primary model loading failed: {str(e)}")
-            # Fallback to medical-specific model
+            logger.error(f"Base model loading failed: {str(e)}")
+            # Try medical fallback model
             try:
+                logger.info(f"Trying medical fallback model: {MEDICAL_FALLBACK_MODEL}")
                 _self.processor = BlipProcessor.from_pretrained(MEDICAL_FALLBACK_MODEL)
                 
                 if _self.device == "cpu":
@@ -135,7 +138,7 @@ class AccurateMedicalVQA:
                 
                 _self.model = _self.model.to(_self.device)
                 _self.model.eval()
-                logger.info(f"Fallback to medical model {MEDICAL_FALLBACK_MODEL} successful")
+                logger.info(f"Medical fallback model loaded successfully")
                 return True
             except Exception as fallback_error:
                 logger.error(f"Medical fallback model failed: {str(fallback_error)}")
@@ -456,7 +459,7 @@ def main():
                 st.success("✅ Advanced medical model loaded successfully!")
                 st.balloons()
             else:
-                st.error("❌ Model loading failed")
+                st.error("❌ Model loading failed. Please check logs for details.")
                 st.stop()
     
     # Main interface
