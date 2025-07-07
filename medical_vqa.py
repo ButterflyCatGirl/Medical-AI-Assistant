@@ -219,112 +219,194 @@ def apply_theme():
 # ... rest of the Streamlit app code remains the same ...
 
 def main():
+    """Main application"""
     init_app()
     apply_theme()
     
-    # Header with improved design
+    # Header
     st.markdown("""
     <div class="main-header">
         <h1>🩺 Accurate Medical AI Assistant</h1>
-        <p><strong>Enhanced Medical Translation - Specialized for Healthcare</strong></p>
+        <p><strong>Enhanced Translation Approach - Medical Image Analysis</strong></p>
     </div>
     """, unsafe_allow_html=True)
     
+    # Initialize system
     vqa_system = get_vqa_system()
     
-    # ... model loading code remains the same ...
+    # Load model
+    if vqa_system.model is None:
+        with st.spinner("🔄 Loading medical model..."):
+            success = vqa_system.load_model()
+            if success:
+                st.success("✅ Medical model loaded successfully!")
+                st.balloons()
+            else:
+                st.error("❌ Model loading failed. Please check the following:")
+                st.error("1. Verify internet connection (models download from Hugging Face)")
+                st.error("2. Try a smaller model or different approach")
+                st.error("3. Check server logs for detailed error message")
+                st.stop()
     
+    # Main interface
     col1, col2 = st.columns([1, 1])
     
     with col1:
         st.markdown("### 📤 Upload Medical Image")
+        
         uploaded_file = st.file_uploader(
             "Choose medical image (max 5MB):",
             type=SUPPORTED_FORMATS,
             help="Supported: JPG, JPEG, PNG"
         )
         
-        # ... file handling code remains the same ...
+        if uploaded_file:
+            is_valid, message = validate_file(uploaded_file)
+            
+            if is_valid:
+                try:
+                    image = Image.open(uploaded_file)
+                    st.image(image, caption=uploaded_file.name, use_container_width=True)
+                    
+                    # Show image stats
+                    col_info1, col_info2 = st.columns(2)
+                    with col_info1:
+                        st.info(f"📊 Size: {image.size[0]}×{image.size[1]}")
+                    with col_info2:
+                        st.info(f"💾 Format: {uploaded_file.name.split('.')[-1].upper()}")
+                except Exception as e:
+                    st.error(f"❌ Image error: {str(e)}")
+                    uploaded_file = None
+            else:
+                st.error(f"❌ {message}")
+                uploaded_file = None
     
     with col2:
         st.markdown("### 💭 Ask Medical Question")
         
-        # Language selector with flags
-        language = st.radio(
-            "Select Language:",
+        # Language selector
+        language = st.selectbox(
+            "Language:",
             options=["ar", "en"],
-            format_func=lambda x: "🇪🇬 العربية" if x == "ar" else "🇺🇸 English",
-            horizontal=True
+            format_func=lambda x: "🇪🇬 العربية" if x == "ar" else "🇺🇸 English"
         )
         
-        # Question input with medical examples
+        # Question input
         if language == "ar":
-            placeholder = "ماذا تُظهر هذه الصورة الشعاعية؟ أو صف التشخيص المحتمل"
+            placeholder = "ما التشخيص المحتمل لهذه الصورة؟ أو صف ما تراه في الصورة"
             label = "السؤال الطبي:"
         else:
-            placeholder = "What does this X-ray show? Or describe the likely diagnosis"
+            placeholder = "What is the likely diagnosis? Or describe what you see in the image"
             label = "Medical Question:"
         
         question = st.text_area(
             label,
             height=100,
-            placeholder=placeholder,
-            help="Be specific: mention body part, view type, or symptoms"
+            placeholder=placeholder
         )
         
-        # Translation preview
-        if question and language == "ar":
-            with st.expander("Translation Preview"):
-                try:
-                    en_question = vqa_system.translate_ar_to_en(question)
-                    st.markdown(f"**English Translation:** {en_question}")
-                    st.caption("Medical terms will be validated before analysis")
-                except:
-                    st.warning("Translation preview unavailable")
-        
         # Analyze button
-        if st.button("🔍 Analyze Medical Image", use_container_width=True):
-            # ... analysis code remains the same ...
-
-    # Enhanced sidebar with translation info
+        if st.button("🔍 Accurate Analysis"):
+            if not uploaded_file:
+                st.warning("⚠️ Upload image first")
+            elif not question.strip():
+                st.warning("⚠️ Enter question")
+            else:
+                with st.spinner("🧠 Analyzing with medical AI..."):
+                    try:
+                        image = Image.open(uploaded_file)
+                        result = vqa_system.process_query(image, question)
+                        
+                        if result["success"]:
+                            st.markdown("---")
+                            st.markdown("### 🎯 Medical Analysis Results")
+                            
+                            # Processing time and accuracy indicator
+                            st.markdown(f"""
+                            <div class="accuracy-indicator">
+                                ✅ <strong>Analysis Complete</strong> | 
+                                ⏱️ <strong>{result['processing_time']:.2f}s</strong> | 
+                                🔍 <strong>{'Arabic' if result['detected_language'] == 'ar' else 'English'}</strong> |
+                                🎯 <strong>Confidence: {result['confidence']*100:.1f}%</strong>
+                            </div>
+                            """, unsafe_allow_html=True)
+                            
+                            # Confidence visual
+                            st.markdown(f"""
+                            <div class="confidence-bar">
+                                <div class="confidence-fill" style="width: {result['confidence']*100}%;"></div>
+                            </div>
+                            """, unsafe_allow_html=True)
+                            
+                            # Results
+                            res_col1, res_col2 = st.columns(2)
+                            
+                            with res_col1:
+                                st.markdown("**🇺🇸 English Analysis**")
+                                st.markdown(f"**Q:** {result['question']}")
+                                st.markdown(f"**Medical Finding:** {result['answer_en']}")
+                            
+                            with res_col2:
+                                st.markdown("**🇪🇬 التحليل الطبي بالعربية**")
+                                st.markdown(f"""
+                                <div class="arabic-text">
+                                    <strong>السؤال:</strong> {result['question']}<br><br>
+                                    <strong>النتيجة الطبية:</strong> {result['answer_ar']}
+                                </div>
+                                """, unsafe_allow_html=True)
+                            
+                            # Medical disclaimer
+                            st.warning("⚠️ **للأغراض التعليمية فقط - استشر طبيب مختص للتشخيص النهائي**")
+                            
+                        else:
+                            st.error(f"❌ Analysis failed: {result.get('error', 'Unknown')}")
+                    
+                    except Exception as e:
+                        st.error(f"❌ Processing error: {str(e)}")
+    
+    # Fixed indentation for sidebar
     with st.sidebar:
-        st.markdown("### 🧬 Translation System")
+        st.markdown("### 📊 System Status")
         
-        if vqa_system.translation_models_loaded:
-            st.success("✅ Medical Translation: Active")
-            st.info("🧠 Using Helsinki-NLP Medical MT Models")
+        if vqa_system.model is not None:
+            st.success("✅ Model: Ready")
+            st.info(f"🖥️ Device: {vqa_system.device.upper()}")
+            st.success("🌐 Translation Enabled")
         else:
-            st.error("❌ Translation: Unavailable")
-        
-        st.markdown("""
-        **🔬 Medical Term Validation:**
-        - 2-step translation process
-        - Medical dictionary matching
-        - Context-aware corrections
-        
-        **🩺 Supported Terms:**
-        - Fractures/كسر
-        - Tumors/ورم
-        - Pneumonia/التهاب رئوي
-        - Edema/وذمة
-        - Cardiomegaly/تضخم القلب
-        """)
+            st.error("❌ Model: Not Ready")
         
         st.markdown("---")
         st.markdown("""
-        **📊 Translation Quality:**
-        - Medical term accuracy: >95%
-        - Context preservation: 92%
-        - Specialized for radiology reports
+        **🔧 Translation Approach:**
+        - Arabic questions → English → BLIP model
+        - English answers → Arabic → Display
+        
+        **🎯 Accuracy Features:**
+        - ✅ Medical-optimized prompts
+        - ✅ Professional translation
+        - ✅ Confidence scoring
+        
+        **📋 Best Practices:**
+        1. Upload clear medical images
+        2. Ask specific questions
+        3. Use medical terminology
+        4. Specify body parts/regions
+        
+        **🩺 Supported Analysis:**
+        - X-rays, CT scans, MRI
+        - Chest, brain, abdomen imaging
+        - Bone fractures, infections
+        - Tumors, fluid accumulation
         """)
+        
+        st.markdown("---")
+        st.markdown("**⚠️ Medical Disclaimer**")
+        st.caption("This AI provides preliminary analysis for educational purposes. Always consult qualified healthcare professionals for medical diagnosis and treatment decisions.")
     
     # Footer
     st.markdown("---")
     st.markdown("""
     <div style='text-align: center; color: #666;'>
-        <p><strong>Medical VQA with Enhanced Translation v3.0</strong> | Optimized for Clinical Accuracy</p>
+        <p><strong>Medical VQA with Translation v2.0</strong> | Enhanced Arabic Support</p>
     </div>
     """, unsafe_allow_html=True)
-
-if __name__ == "__main__":
-    main()
