@@ -1,15 +1,14 @@
-# Ultra-Fast Medical VQA Streamlit App with Enhanced Translation Accuracy
+# Ultra-Fast Medical VQA Streamlit App with Accurate Translation
 import streamlit as st
-from PIL import Image
+from PIL import Image, ImageOps
 import torch
 from transformers import BlipProcessor, BlipForQuestionAnswering, MarianMTModel, MarianTokenizer
 import logging
 import time
-import re
+import gc
+from typing import Optional, Dict, Any
 import warnings
-from typing import Dict, Any
-import os
-import sys
+import re
 
 # Suppress warnings
 warnings.filterwarnings("ignore")
@@ -17,207 +16,119 @@ logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 # Optimized Configuration
-MAX_IMAGE_DIM = 512
+MAX_IMAGE_DIM = 512  # Higher resolution for medical details
 SUPPORTED_FORMATS = ["jpg", "jpeg", "png"]
 MAX_FILE_SIZE = 5 * 1024 * 1024  # 5MB
-# Use only reliable base model
-BASE_MODEL = "Salesforce/blip-vqa-base"
-
-# Medical term dictionaries for validation
-MEDICAL_TERMS_EN = {
-    "fracture", "tumor", "infection", "pneumonia", "edema", 
-    "cardiomegaly", "opacity", "consolidation", "effusion", 
-    "nodule", "atelectasis", "hernia"
-}
-
-MEDICAL_TERMS_AR = {
-    "كسر", "ورم", "عدوى", "التهاب رئوي", "وذمة", 
-    "تضخم القلب", "عتامة", "تصلب", "انصباب", 
-    "عقدة", "انخماص", "فتق"
-}
+BASE_MODEL = "Salesforce/blip-vqa-base"  # Official base model
 
 class AccurateMedicalVQA:
-    """Medical VQA System with Enhanced Medical Translation"""
+    """Accurate Medical VQA System with Enhanced Translation"""
     
     def __init__(self):
         self.processor = None
         self.model = None
         self.device = self._get_device()
         self.translation_models_loaded = False
-        self.translation_cache = {}
-        self.model_loading_error = None
-        self.load_status = "Not Loaded"
         
     def _get_device(self) -> str:
-        return "cuda" if torch.cuda.is_available() else "cpu"
+        """Get optimal device"""
+        if torch.cuda.is_available():
+            return "cuda"
+        return "cpu"
     
     def _load_translation_models(self):
-        """Load specialized medical translation models"""
+        """Load translation models"""
         try:
-            logger.info("Loading medical translation models...")
+            logger.info("Loading translation models...")
+            # Arabic to English translation
+            self.ar_en_tokenizer = MarianTokenizer.from_pretrained("Helsinki-NLP/opus-mt-ar-en")
+            self.ar_en_model = MarianMTModel.from_pretrained("Helsinki-NLP/opus-mt-ar-en").to(self.device)
             
-            # Medical-optimized translation models
-            self.ar_en_tokenizer = MarianTokenizer.from_pretrained("Helsinki-NLP/opus-mt-ar-en-medical")
-            self.ar_en_model = MarianMTModel.from_pretrained("Helsinki-NLP/opus-mt-ar-en-medical").to(self.device)
+            # English to Arabic translation
+            self.en_ar_tokenizer = MarianTokenizer.from_pretrained("Helsinki-NLP/opus-mt-en-ar")
+            self.en_ar_model = MarianMTModel.from_pretrained("Helsinki-NLP/opus-mt-en-ar").to(self.device)
             
-            self.en_ar_tokenizer = MarianTokenizer.from_pretrained("Helsinki-NLP/opus-mt-en-medical")
-            self.en_ar_model = MarianMTModel.from_pretrained("Helsinki-NLP/opus-mt-en-medical").to(self.device)
-            
-            logger.info("Medical translation models loaded")
+            logger.info("Translation models loaded successfully")
             self.translation_models_loaded = True
             return True
         except Exception as e:
-            logger.error(f"Medical translation model loading failed: {str(e)}")
-            self.model_loading_error = str(e)
+            logger.error(f"Translation model loading failed: {str(e)}")
             return False
     
-    def _validate_medical_translation(self, source: str, translation: str, source_lang: str) -> bool:
-        """Validate medical terms in translation"""
-        if source_lang == "en":
-            source_terms = MEDICAL_TERMS_EN
-            target_terms = MEDICAL_TERMS_AR
-        else:
-            source_terms = MEDICAL_TERMS_AR
-            target_terms = MEDICAL_TERMS_EN
-        
-        # Check for critical medical terms
-        for term in source_terms:
-            if term in source.lower():
-                if not any(t in translation.lower() for t in target_terms):
-                    logger.warning(f"Medical term '{term}' not properly translated")
-                    return False
-        return True
-    
-    def _post_process_translation(self, text: str, target_lang: str) -> str:
-        """Clean and format medical translations"""
-        # Remove extra spaces and punctuation issues
-        text = re.sub(r'\s+([.,;:])', r'\1', text)
-        text = re.sub(r'([.,;:])\s+', r'\1 ', text)
-        
-        # Medical-specific corrections
-        corrections = {
-            "x ray": "X-ray",
-            "xray": "X-ray",
-            "ct scan": "CT scan",
-            "mri scan": "MRI scan",
-            "اشعة اكس": "أشعة إكس",
-            "اشعة مقطعية": "أشعة مقطعية"
-        }
-        
-        for wrong, correct in corrections.items():
-            text = text.replace(wrong, correct)
-            
-        # Capitalize first letter for medical reports
-        if text and target_lang == "en":
-            text = text[0].upper() + text[1:]
-            
-        return text.strip()
-    
     def translate_ar_to_en(self, text: str) -> str:
-        """Translate Arabic to English with medical validation"""
+        """Translate Arabic to English"""
         if not text.strip():
             return ""
         
-        # Check cache first
-        if text in self.translation_cache:
-            return self.translation_cache[text]
-        
         if not self.translation_models_loaded:
             self._load_translation_models()
-            
+        
         try:
-            # Tokenize and translate
             inputs = self.ar_en_tokenizer(text, return_tensors="pt", padding=True, truncation=True).to(self.device)
             translated = self.ar_en_model.generate(**inputs)
-            translation = self.ar_en_tokenizer.decode(translated[0], skip_special_tokens=True)
-            
-            # Validate medical terms
-            if not self._validate_medical_translation(text, translation, "ar"):
-                logger.warning(f"Retrying translation for: {text}")
-                # Try a second time if validation fails
-                inputs = self.ar_en_tokenizer(text, return_tensors="pt", padding=True, truncation=True).to(self.device)
-                translated = self.ar_en_model.generate(**inputs)
-                translation = self.ar_en_tokenizer.decode(translated[0], skip_special_tokens=True)
-            
-            # Post-process
-            translation = self._post_process_translation(translation, "en")
-            
-            # Cache result
-            self.translation_cache[text] = translation
-            return translation
+            return self.ar_en_tokenizer.decode(translated[0], skip_special_tokens=True)
         except Exception as e:
             logger.error(f"Arabic to English translation failed: {str(e)}")
             return text
     
     def translate_en_to_ar(self, text: str) -> str:
-        """Translate English to Arabic with medical validation"""
+        """Translate English to Arabic"""
         if not text.strip():
             return ""
-        
-        # Check cache first
-        if text in self.translation_cache:
-            return self.translation_cache[text]
         
         if not self.translation_models_loaded:
             self._load_translation_models()
         
         try:
-            # Tokenize and translate
             inputs = self.en_ar_tokenizer(text, return_tensors="pt", padding=True, truncation=True).to(self.device)
             translated = self.en_ar_model.generate(**inputs)
-            translation = self.en_ar_tokenizer.decode(translated[0], skip_special_tokens=True)
-            
-            # Validate medical terms
-            if not self._validate_medical_translation(text, translation, "en"):
-                logger.warning(f"Retrying translation for: {text}")
-                # Try a second time if validation fails
-                inputs = self.en_ar_tokenizer(text, return_tensors="pt", padding=True, truncation=True).to(self.device)
-                translated = self.en_ar_model.generate(**inputs)
-                translation = self.en_ar_tokenizer.decode(translated[0], skip_special_tokens=True)
-            
-            # Post-process
-            translation = self._post_process_translation(translation, "ar")
-            
-            # Cache result
-            self.translation_cache[text] = translation
-            return translation
+            return self.en_ar_tokenizer.decode(translated[0], skip_special_tokens=True)
         except Exception as e:
             logger.error(f"English to Arabic translation failed: {str(e)}")
             return text
-
-    def load_model(self):
+    
+    @st.cache_resource(show_spinner=False)
+    def load_model(_self):
         """Load model with robust error handling"""
         try:
             logger.info(f"Loading model: {BASE_MODEL}")
             
             # Load processor and model
-            self.processor = BlipProcessor.from_pretrained(BASE_MODEL)
+            _self.processor = BlipProcessor.from_pretrained(BASE_MODEL)
             
             # Handle device and precision
-            if self.device == "cpu":
-                self.model = BlipForQuestionAnswering.from_pretrained(
+            if _self.device == "cpu":
+                _self.model = BlipForQuestionAnswering.from_pretrained(
                     BASE_MODEL,
-                    torch_dtype=tor极float32
+                    torch_dtype=torch.float32
                 )
             else:
-                self.model = BlipForQuestionAnswering.from_pretrained(
+                _self.model = BlipForQuestionAnswering.from_pretrained(
                     BASE_MODEL,
                     torch_dtype=torch.float16
                 )
             
-            self.model = self.model.to(self.device)
-            self.model.eval()
+            _self.model = _self.model.to(_self.device)
+            _self.model.eval()
             
-            logger.info(f"Model loaded successfully on {self.device}")
-            self.load_status = f"Loaded: {BASE_MODEL}"
+            logger.info(f"Model loaded successfully on {_self.device}")
             return True
             
         except Exception as e:
             logger.error(f"Model loading failed: {str(e)}")
-            self.model_loading_error = str(e)
-            self.load_status = "Failed to load"
-            return False
-
+            # Try alternative loading approach
+            try:
+                logger.info("Trying alternative model loading approach...")
+                _self.processor = BlipProcessor.from_pretrained(BASE_MODEL)
+                _self.model = BlipForQuestionAnswering.from_pretrained(BASE_MODEL)
+                _self.model = _self.model.to(_self.device)
+                _self.model.eval()
+                logger.info("Model loaded successfully with alternative approach")
+                return True
+            except Exception as alt_e:
+                logger.error(f"Alternative loading failed: {str(alt_e)}")
+                return False
+    
     def _detect_language(self, text: str) -> str:
         """Fast language detection"""
         arabic_chars = sum(1 for c in text if '\u0600' <= c <= '\u06FF')
@@ -267,7 +178,7 @@ class AccurateMedicalVQA:
         uncertainty_count = sum(1 for term in uncertainty_terms if term in answer.lower())
         certainty_count = sum(1 for term in certain_terms if term in answer.lower())
         
-        total_terms = uncertainty_count + certainty极
+        total_terms = uncertainty_count + certainty_count
         if total_terms == 0:
             return 0.8  # Default confidence
         
@@ -352,14 +263,15 @@ class AccurateMedicalVQA:
 
 # Streamlit Configuration
 def init_app():
+    """Initialize app with optimized settings"""
     st.set_page_config(
-        page_title="Medical AI Assistant",
+        page_title="Accurate Medical AI",
         layout="wide",
-        page_icon="🩺",
-        initial_sidebar_state="expanded"
+        page_icon="🩺"
     )
 
 def apply_theme():
+    """Apply enhanced theme"""
     st.markdown("""
     <style>
         .main-header {
@@ -395,7 +307,7 @@ def apply_theme():
         .fast-stats {
             background: #e8f5e8;
             padding: 0.5rem;
-            border-radius: 5极;
+            border-radius: 5px;
             font-size: 0.9em;
             margin: 0.5rem 0;
         }
@@ -417,30 +329,6 @@ def apply_theme():
             height: 100%;
             border-radius: 5px;
             background: linear-gradient(90deg, #4CAF50 0%, #8BC34A 100%);
-        }
-        .translation-preview {
-            background: #e8f4f8;
-            border-radius: 8px;
-            padding: 12px;
-            margin: 10px 0;
-            border-left: 3px solid #2E8B57;
-        }
-        .term-highlight {
-            background-color: #fff3cd;
-            padding: 2px 4px;
-            border-radius: 4px;
-            font-weight: bold;
-        }
-        .error-box {
-            background: #f8d7da;
-            color: #721c24;
-            padding: 15px;
-            border-radius: 8px;
-            margin: 15px 0;
-            border: 1px solid #f5c6cb;
-            font-family: monospace;
-            font-size: 14px;
-            white-space: pre-wrap;
         }
     </style>
     """, unsafe_allow_html=True)
@@ -469,74 +357,29 @@ def main():
     init_app()
     apply_theme()
     
-    # Header with improved design
+    # Header
     st.markdown("""
     <div class="main-header">
         <h1>🩺 Accurate Medical AI Assistant</h1>
-        <p><strong>Enhanced Medical Translation - Specialized for Healthcare</strong></p>
+        <p><strong>Enhanced Translation Approach - Medical Image Analysis</strong></p>
     </div>
     """, unsafe_allow_html=True)
     
     # Initialize system
     vqa_system = get_vqa_system()
     
-    # Environment info
-    with st.expander("Environment Information", expanded=False):
-        st.write(f"**Python version:** {sys.version}")
-        st.write(f"**PyTorch version:** {torch.__version__}")
-        st.write(f"**Device:** {vqa_system.device}")
-        st.write(f"**Available GPUs:** {torch.cuda.device_count()}")
-        if torch.cuda.is_available():
-            st.write(f"**Current GPU:** {torch.cuda.get_device_name(0)}")
-        st.write(f"**Hugging Face cache:** {os.getenv('TRANSFORMERS_CACHE', 'Default')}")
-        st.write(f"**Model Status:** {vqa_system.load_status}")
-        st.write(f"**Base Model:** {BASE_MODEL}")
-    
-    # Load model if not loaded
+    # Load model
     if vqa_system.model is None:
         with st.spinner("🔄 Loading medical model..."):
             success = vqa_system.load_model()
             if success:
-                st.success(f"✅ Medical model loaded successfully!")
+                st.success("✅ Medical model loaded successfully!")
                 st.balloons()
             else:
                 st.error("❌ Model loading failed. Please check the following:")
                 st.error("1. Verify internet connection (models download from Hugging Face)")
-                st.error("2. Check server logs for detailed error message")
-                
-                # Show detailed error
-                st.markdown("### Detailed Error Information")
-                if vqa_system.model_loading_error:
-                    st.code(vqa_system.model_loading_error, language="text")
-                else:
-                    st.warning("No detailed error information available")
-                
-                # Troubleshooting guide
-                with st.expander("Troubleshooting Guide"):
-                    st.markdown("""
-                    ### Common Solutions:
-                    
-                    1. **Check Internet Connection**: 
-                       - The app needs to download models from Hugging Face Hub
-                       - Ensure your server has internet access
-                       - If behind a firewall, whitelist `huggingface.co`
-                    
-                    2. **Verify Model Availability**: 
-                       - Visit the model repository to confirm it's accessible:
-                       - [Salesforce/blip-vqa-base on Hugging Face](https://huggingface.co/Salesforce/blip-vqa-base)
-                    
-                    3. **Increase Resources**:
-                       - If running locally, try with GPU
-                       - On cloud services, upgrade to a plan with more memory
-                    
-                    4. **Clear Cache**:
-                       - Streamlit caches models, which can sometimes cause issues
-                       - Try clearing cache with `streamlit cache clear`
-                    
-                    5. **Alternative Approach**:
-                       - Consider using a different model architecture
-                    """)
-                
+                st.error("2. Try a smaller model or different approach")
+                st.error("3. Check server logs for detailed error message")
                 st.stop()
     
     # Main interface
@@ -575,42 +418,29 @@ def main():
     with col2:
         st.markdown("### 💭 Ask Medical Question")
         
-        # Language selector with flags
-        language = st.radio(
-            "Select Language:",
+        # Language selector
+        language = st.selectbox(
+            "Language:",
             options=["ar", "en"],
-            format_func=lambda x: "🇪🇬 العربية" if x == "ar" else "🇺🇸 English",
-            horizontal=True
+            format_func=lambda x: "🇪🇬 العربية" if x == "ar" else "🇺🇸 English"
         )
         
-        # Question input with medical examples
+        # Question input
         if language == "ar":
-            placeholder = "ماذا تُظهر هذه الصورة الشعاعية؟ أو صف التشخيص المحتمل"
+            placeholder = "ما التشخيص المحتمل لهذه الصورة؟ أو صف ما تراه في الصورة"
             label = "السؤال الطبي:"
         else:
-            placeholder = "What does this X-ray show? Or describe the likely diagnosis"
+            placeholder = "What is the likely diagnosis? Or describe what you see in the image"
             label = "Medical Question:"
         
-        # FIXED: Added closing parenthesis for text_area
         question = st.text_area(
             label,
             height=100,
-            placeholder=placeholder,
-            help="Be specific: mention body part, view type, or symptoms"
+            placeholder=placeholder
         )
         
-        # Translation preview
-        if question and language == "ar":
-            with st.expander("Translation Preview"):
-                try:
-                    en_question = vqa_system.translate_ar_to_en(question)
-                    st.markdown(f"**English Translation:** {en_question}")
-                    st.caption("Medical terms will be validated before analysis")
-                except:
-                    st.warning("Translation preview unavailable")
-        
         # Analyze button
-        if st.button("🔍 Analyze Medical Image", use_container_width=True):
+        if st.button("🔍 Accurate Analysis"):
             if not uploaded_file:
                 st.warning("⚠️ Upload image first")
             elif not question.strip():
@@ -668,39 +498,39 @@ def main():
                     except Exception as e:
                         st.error(f"❌ Processing error: {str(e)}")
     
-    # Enhanced sidebar with translation info
+    # Sidebar
     with st.sidebar:
-        st.markdown("### 🧬 System Status")
+        st.markdown("### 📊 System Status")
         
         if vqa_system.model is not None:
-            st.success(f"✅ Model: Ready")
+            st.success("✅ Model: Ready")
             st.info(f"🖥️ Device: {vqa_system.device.upper()}")
-            if vqa_system.translation_models_loaded:
-                st.success("🌐 Translation: Active")
-            else:
-                st.warning("⚠️ Translation: Partially Loaded")
+            st.success("🌐 Translation Enabled")
         else:
             st.error("❌ Model: Not Ready")
         
         st.markdown("---")
-        st.markdown("### 🔧 Configuration")
-        st.info(f"**Base Model:** {BASE_MODEL}")
-        st.info(f"**Max Image Dim:** {MAX_IMAGE_DIM}px")
-        st.info(f"**Max File Size:** {MAX_FILE_SIZE//1024//1024}MB")
-        st.info(f"**Supported Formats:** {', '.join(SUPPORTED_FORMATS)}")
-        
-        st.markdown("---")
         st.markdown("""
-        **🩺 Medical Term Validation:**
-        - 2-step translation process
-        - Medical dictionary matching
-        - Context-aware corrections
+        **🔧 Translation Approach:**
+        - Arabic questions → English → BLIP model
+        - English answers → Arabic → Display
+        
+        **🎯 Accuracy Features:**
+        - ✅ Medical-optimized prompts
+        - ✅ Professional translation
+        - ✅ Confidence scoring
         
         **📋 Best Practices:**
         1. Upload clear medical images
         2. Ask specific questions
         3. Use medical terminology
         4. Specify body parts/regions
+        
+        **🩺 Supported Analysis:**
+        - X-rays, CT scans, MRI
+        - Chest, brain, abdomen imaging
+        - Bone fractures, infections
+        - Tumors, fluid accumulation
         """)
         
         st.markdown("---")
@@ -711,8 +541,7 @@ def main():
     st.markdown("---")
     st.markdown("""
     <div style='text-align: center; color: #666;'>
-        <p><strong>Medical VQA with Enhanced Translation v3.2</strong> | Optimized for Reliability</p>
-        <p><small>Using Salesforce/blip-vqa-base model</small></p>
+        <p><strong>Medical VQA with Translation v2.0</strong> | Enhanced Arabic Support</p>
     </div>
     """, unsafe_allow_html=True)
 
