@@ -1,4 +1,4 @@
-# Fast Medical VQA Streamlit App - Optimized Version
+# Ultra-Fast Medical VQA Streamlit App - FIXED VERSION
 import streamlit as st
 from PIL import Image, ImageOps
 import torch
@@ -6,7 +6,7 @@ from transformers import BlipProcessor, BlipForConditionalGeneration
 import logging
 import time
 import gc
-from typing import Dict, Any
+from typing import Optional, Dict, Any
 import warnings
 import re
 
@@ -15,8 +15,8 @@ warnings.filterwarnings("ignore")
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-# Configuration
-MAX_IMAGE_SIZE = (224, 224)  # Small for speed
+# Optimized Configuration
+MAX_IMAGE_SIZE = (224, 224)  # Smaller for speed
 SUPPORTED_FORMATS = ["jpg", "jpeg", "png"]
 MAX_FILE_SIZE = 5 * 1024 * 1024  # 5MB
 FINE_TUNED_MODEL = "sharawy53/blip-vqa-medical-arabic"
@@ -54,8 +54,12 @@ class FastMedicalVQA:
         try:
             logger.info(f"Loading fine-tuned model: {FINE_TUNED_MODEL}")
             
-            # Try fine-tuned model first
+            # Load with optimizations
             _self.processor = BlipProcessor.from_pretrained(FINE_TUNED_MODEL)
+            
+            # Set pad token properly
+            if _self.processor.tokenizer.pad_token is None:
+                _self.processor.tokenizer.pad_token = _self.processor.tokenizer.eos_token
             
             if _self.device == "cpu":
                 _self.model = BlipForConditionalGeneration.from_pretrained(
@@ -73,22 +77,26 @@ class FastMedicalVQA:
             _self.model = _self.model.to(_self.device)
             _self.model.eval()
             
-            logger.info(f"Fine-tuned model loaded successfully on {_self.device}")
+            # Enable optimizations
+            if _self.device == "cuda":
+                try:
+                    _self.model = torch.compile(_self.model, mode="reduce-overhead")
+                except:
+                    logger.warning("Torch compile not available, using regular model")
+            
+            logger.info(f"Model loaded successfully on {_self.device}")
             return True
             
         except Exception as e:
-            logger.error(f"Fine-tuned model loading failed: {str(e)}")
+            logger.error(f"Model loading failed: {str(e)}")
             # Fallback to base model
             try:
-                logger.info("Trying fallback base model...")
                 _self.processor = BlipProcessor.from_pretrained("Salesforce/blip-vqa-base")
                 _self.model = BlipForConditionalGeneration.from_pretrained("Salesforce/blip-vqa-base")
                 _self.model = _self.model.to(_self.device)
-                _self.model.eval()
-                logger.info("Fallback base model loaded successfully")
+                logger.info("Fallback to base model successful")
                 return True
-            except Exception as fallback_error:
-                logger.error(f"Fallback model also failed: {str(fallback_error)}")
+            except:
                 return False
     
     def _detect_language(self, text: str) -> str:
@@ -137,7 +145,7 @@ class FastMedicalVQA:
         return image
     
     def process_query(self, image: Image.Image, question: str) -> Dict[str, Any]:
-        """Process query with optimizations"""
+        """Process query with optimizations - FIXED pad_token_id issue"""
         try:
             start_time = time.time()
             
@@ -150,16 +158,25 @@ class FastMedicalVQA:
             # Process with model
             inputs = self.processor(image, question, return_tensors="pt").to(self.device)
             
-            # Generate with speed optimizations
+            # Generate with speed optimizations - FIXED: removed duplicate pad_token_id
             with torch.no_grad():
-                generated_ids = self.model.generate(
-                    **inputs,
-                    max_length=32,  # Shorter for speed
-                    num_beams=2,    # Faster beam search
-                    early_stopping=True,
-                    do_sample=False,
-                    pad_token_id=self.processor.tokenizer.pad_token_id
-                )
+                if self.device == "cuda":
+                    with torch.cuda.amp.autocast():
+                        generated_ids = self.model.generate(
+                            **inputs,
+                            max_length=32,
+                            num_beams=2,
+                            early_stopping=True,
+                            do_sample=False
+                        )
+                else:
+                    generated_ids = self.model.generate(
+                        **inputs,
+                        max_length=32,
+                        num_beams=2,
+                        early_stopping=True,
+                        do_sample=False
+                    )
             
             # Decode answer
             answer = self.processor.decode(generated_ids[0], skip_special_tokens=True)
@@ -269,12 +286,11 @@ def main():
     init_app()
     apply_theme()
     
-    # Header
+    # Header - FIXED: Removed model name
     st.markdown("""
     <div class="main-header">
         <h1>⚡ Fast Medical AI Assistant</h1>
         <p><strong>Optimized for Speed - Powered by Fine-tuned BLIP Model</strong></p>
-        <p>🚀 Model: <code>sharawy53/blip-vqa-medical-arabic</code></p>
     </div>
     """, unsafe_allow_html=True)
     
@@ -433,7 +449,6 @@ def main():
     st.markdown("""
     <div style='text-align: center; color: #666;'>
         <p><strong>Fast Medical VQA v1.0</strong> | Optimized Response Times</p>
-        <p>Powered by: <code>sharawy53/blip-vqa-medical-arabic</code></p>
     </div>
     """, unsafe_allow_html=True)
 
