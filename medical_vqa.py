@@ -24,7 +24,7 @@ MAX_FILE_SIZE = 5 * 1024 * 1024  # 5MB
 BASE_MODELS = [
     "blip-vqa-medical-final"
   #  "mennahhhh/mobilenet-t5-vqa"
-    "Salesforce/blip-vqa-base",  # More reliable base model
+  #  "Salesforce/blip-vqa-base",  # More reliable base model
    # "ButterflyCatGirl/Blip-Streamlit-chatbot"  # Fallback to custom model
 ]
 
