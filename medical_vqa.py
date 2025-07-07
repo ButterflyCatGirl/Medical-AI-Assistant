@@ -17,7 +17,7 @@ logger = logging.getLogger(__name__)
 MAX_IMAGE_SIZE = (384, 384)
 SUPPORTED_FORMATS = ["jpg", "jpeg", "png"]
 MAX_FILE_SIZE = 10 * 1024 * 1024  # 10MB
-VQA_MODEL = "sharawy53/diploma"
+VQA_MODEL = "ButterflyCatGirl/Blip-Streamlit-chatbot"
 
 class WorkingMedicalVQA:
     """Working Medical VQA System - Fixed Version"""
