@@ -91,8 +91,8 @@ class FastMedicalVQA:
             logger.error(f"Model loading failed: {str(e)}")
             # Fallback to base model
             try:
-                _self.processor = BlipProcessor.from_pretrained("Salesforce/blip-vqa-base")
-                _self.model = BlipForConditionalGeneration.from_pretrained("Salesforce/blip-vqa-base")
+                _self.processor = BlipProcessor.from_pretrained("blip-vqa-medical-final")
+                _self.model = BlipForConditionalGeneration.from_pretrained("blip-vqa-medical-final")
                 _self.model = _self.model.to(_self.device)
                 logger.info("Fallback to base model successful")
                 return True
