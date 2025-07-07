@@ -1,34 +1,36 @@
-# Ultra-Fast Medical VQA Streamlit App - FINAL ACCURATE VERSION
+# Enhanced Medical VQA Streamlit App - Final Version with Proper Translation
 import streamlit as st
-from PIL import Image, ImageOps
+from PIL import Image
 import torch
-from transformers import BlipProcessor, BlipForConditionalGeneration
+from transformers import BlipProcessor, BlipForQuestionAnswering, MarianMTModel, MarianTokenizer
 import logging
 import time
 import gc
 from typing import Optional, Dict, Any
 import warnings
-import re
 
 # Suppress warnings
 warnings.filterwarnings("ignore")
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-# Optimized Configuration
-MAX_IMAGE_SIZE = (384, 384)  # Better for medical images
+# Configuration
+MAX_IMAGE_SIZE = (384, 384)
 SUPPORTED_FORMATS = ["jpg", "jpeg", "png"]
 MAX_FILE_SIZE = 5 * 1024 * 1024  # 5MB
-FINE_TUNED_MODEL = "ButterflyCatGirl/Blip-Streamlit-chatbot"
+VQA_MODEL = "sharawy53/diploma"
 
-class AccurateMedicalVQA:
-    """Accurate Medical VQA System with Enhanced Responses"""
+class EnhancedMedicalVQA:
+    """Enhanced Medical VQA System with Proper Translation"""
     
     def __init__(self):
-        self.processor = None
-        self.model = None
+        self.vqa_processor = None
+        self.vqa_model = None
+        self.ar_en_tokenizer = None
+        self.ar_en_model = None
+        self.en_ar_tokenizer = None
+        self.en_ar_model = None
         self.device = self._get_device()
-        self.medical_terms = self._load_comprehensive_medical_terms()
         
     def _get_device(self) -> str:
         """Get optimal device"""
@@ -36,260 +38,146 @@ class AccurateMedicalVQA:
             return "cuda"
         return "cpu"
     
-    def _load_comprehensive_medical_terms(self) -> Dict[str, str]:
-        """Comprehensive medical terminology for accurate Arabic responses"""
-        return {
-            # Basic medical terms
-            "normal": "طبيعي", "abnormal": "غير طبيعي", "healthy": "سليم",
-            "disease": "مرض", "condition": "حالة", "patient": "مريض",
-            
-            # Body parts and anatomy
-            "chest": "الصدر", "lung": "الرئة", "lungs": "الرئتان", "heart": "القلب",
-            "brain": "الدماغ", "liver": "الكبد", "kidney": "الكلية", "spine": "العمود الفقري",
-            "bone": "عظم", "bones": "عظام", "skull": "الجمجمة", "rib": "ضلع", "ribs": "أضلاع",
-            "abdomen": "البطن", "pelvis": "الحوض", "shoulder": "الكتف", "neck": "الرقبة",
-            
-            # Medical imaging
-            "x-ray": "أشعة سينية", "ct scan": "تصوير مقطعي محوسب", "mri": "رنين مغناطيسي",
-            "ultrasound": "موجات فوق صوتية", "radiograph": "صورة شعاعية", "scan": "فحص بالأشعة",
-            
-            # Medical conditions
-            "pneumonia": "التهاب رئوي", "infection": "التهاب", "inflammation": "التهاب",
-            "fracture": "كسر", "broken": "مكسور", "tumor": "ورم", "mass": "كتلة",
-            "cancer": "سرطان", "fluid": "سوائل", "swelling": "تورم", "pain": "ألم",
-            
-            # Medical observations
-            "shows": "يُظهر", "appears": "يبدو", "indicates": "يشير إلى", "suggests": "يوحي بـ",
-            "visible": "مرئي", "evident": "واضح", "present": "موجود", "absent": "غائب",
-            "enlarged": "متضخم", "reduced": "منخفض", "increased": "مرتفع", "decreased": "منخفض",
-            
-            # Medical actions
-            "examination": "فحص", "diagnosis": "تشخيص", "treatment": "علاج", "surgery": "جراحة",
-            "consultation": "استشارة", "follow-up": "متابعة", "monitoring": "مراقبة",
-            
-            # Common phrases
-            "what is": "ما هو", "what are": "ما هي", "this image": "هذه الصورة",
-            "medical image": "صورة طبية", "likely": "محتمل", "possible": "ممكن"
-        }
-    
-    def _create_medical_prompt(self, question: str) -> str:
-        """Create enhanced medical prompt for better responses"""
-        medical_prompt_prefix = "As a medical AI assistant analyzing medical images, provide accurate medical observations. "
-        
-        # Add context based on question type
-        if any(word in question.lower() for word in ["diagnosis", "تشخيص"]):
-            return f"{medical_prompt_prefix}Focus on diagnostic findings: {question}"
-        elif any(word in question.lower() for word in ["normal", "abnormal", "طبيعي"]):
-            return f"{medical_prompt_prefix}Assess if findings are normal or abnormal: {question}"
-        elif any(word in question.lower() for word in ["chest", "lung", "صدر", "رئة"]):
-            return f"{medical_prompt_prefix}Analyze chest/pulmonary findings: {question}"
-        else:
-            return f"{medical_prompt_prefix}{question}"
-    
     @st.cache_resource(show_spinner=False)
-    def load_model(_self):
-        """Load fine-tuned model with caching"""
+    def load_models(_self):
+        """Load all models with caching"""
         try:
-            logger.info(f"Loading fine-tuned model: {FINE_TUNED_MODEL}")
+            logger.info("Loading VQA model...")
+            # Load VQA model
+            _self.vqa_model = BlipForQuestionAnswering.from_pretrained(VQA_MODEL)
+            _self.vqa_processor = BlipProcessor.from_pretrained(VQA_MODEL)
+            _self.vqa_model = _self.vqa_model.to(_self.device)
+            _self.vqa_model.eval()
             
-            # Load with optimizations
-            _self.processor = BlipProcessor.from_pretrained(FINE_TUNED_MODEL)
+            logger.info("Loading translation models...")
+            # Load Arabic to English translation
+            _self.ar_en_tokenizer = MarianTokenizer.from_pretrained("Helsinki-NLP/opus-mt-ar-en")
+            _self.ar_en_model = MarianMTModel.from_pretrained("Helsinki-NLP/opus-mt-ar-en")
+            _self.ar_en_model = _self.ar_en_model.to(_self.device)
             
-            # Set pad token properly
-            if _self.processor.tokenizer.pad_token is None:
-                _self.processor.tokenizer.pad_token = _self.processor.tokenizer.eos_token
+            # Load English to Arabic translation
+            _self.en_ar_tokenizer = MarianTokenizer.from_pretrained("Helsinki-NLP/opus-mt-en-ar")
+            _self.en_ar_model = MarianMTModel.from_pretrained("Helsinki-NLP/opus-mt-en-ar")
+            _self.en_ar_model = _self.en_ar_model.to(_self.device)
             
-            if _self.device == "cpu":
-                _self.model = BlipForConditionalGeneration.from_pretrained(
-                    FINE_TUNED_MODEL,
-                    torch_dtype=torch.float32,
-                    low_cpu_mem_usage=True
-                )
-            else:
-                _self.model = BlipForConditionalGeneration.from_pretrained(
-                    FINE_TUNED_MODEL,
-                    torch_dtype=torch.float16,
-                    low_cpu_mem_usage=True
-                )
-            
-            _self.model = _self.model.to(_self.device)
-            _self.model.eval()
-            
-            logger.info(f"Model loaded successfully on {_self.device}")
+            logger.info("All models loaded successfully")
             return True
             
         except Exception as e:
             logger.error(f"Model loading failed: {str(e)}")
-            # Fallback to base model
-            try:
-                _self.processor = BlipProcessor.from_pretrained("Salesforce/blip-vqa-base")
-                _self.model = BlipForConditionalGeneration.from_pretrained("Salesforce/blip-vqa-base")
-                _self.model = _self.model.to(_self.device)
-                logger.info("Fallback to base model successful")
-                return True
-            except:
-                return False
+            return False
     
     def _detect_language(self, text: str) -> str:
-        """Fast language detection"""
+        """Detect language"""
         arabic_chars = sum(1 for c in text if '\u0600' <= c <= '\u06FF')
         return "ar" if arabic_chars > 0 else "en"
     
-    def _translate_to_arabic_medical(self, text_en: str, question: str = "") -> str:
-        """Advanced medical translation to Arabic with context"""
-        if not text_en or text_en.strip() == "":
-            return "لا يمكن تحديد النتائج بوضوح من الصورة"
-        
-        # Clean the text first
-        text_clean = text_en.strip()
-        text_lower = text_clean.lower()
-        
-        # Medical-specific Arabic responses based on content analysis
-        if any(term in text_lower for term in ["normal", "no abnormalities", "healthy", "clear"]):
-            if "chest" in text_lower or "lung" in text_lower:
-                return "تظهر الصورة رئتين طبيعيتين بدون علامات مرضية واضحة"
-            elif "heart" in text_lower:
-                return "يبدو القلب طبيعي الحجم والشكل"
-            else:
-                return "تظهر الصورة نتائج طبيعية بدون علامات غير طبيعية واضحة"
-        
-        elif any(term in text_lower for term in ["pneumonia", "infection", "infiltrate"]):
-            return "تظهر علامات محتملة لالتهاب رئوي أو عدوى تحتاج لتقييم طبي متخصص"
-        
-        elif any(term in text_lower for term in ["fracture", "break", "broken"]):
-            return "تظهر علامات محتملة لكسر يحتاج لتقييم طبي فوري"
-        
-        elif any(term in text_lower for term in ["mass", "tumor", "growth"]):
-            return "تظهر كتلة أو نمو غير طبيعي يحتاج لفحص وتقييم طبي متخصص"
-        
-        elif any(term in text_lower for term in ["fluid", "effusion"]):
-            return "تظهر تجمع سوائل غير طبيعي يحتاج لتقييم طبي"
-        
-        # Try word-by-word translation for technical terms
-        words = text_clean.split()
-        translated_words = []
-        
-        for word in words:
-            clean_word = re.sub(r'[^\w\s]', '', word.lower())
-            if clean_word in self.medical_terms:
-                translated_words.append(self.medical_terms[clean_word])
-            else:
-                # Check for partial matches
-                found = False
-                for en_term, ar_term in self.medical_terms.items():
-                    if en_term in clean_word or clean_word in en_term:
-                        translated_words.append(ar_term)
-                        found = True
-                        break
-                if not found:
-                    translated_words.append(word)
-        
-        result = " ".join(translated_words)
-        
-        # If translation is still poor, provide contextual medical response
-        arabic_char_count = sum(1 for c in result if '\u0600' <= c <= '\u06FF')
-        if arabic_char_count < 3:
-            return "تحتاج هذه الصورة الطبية إلى تحليل وتفسير من قبل طبيب مختص في الأشعة للحصول على تشخيص دقيق"
-        
-        return result
+    def translate_ar_to_en(self, text: str) -> str:
+        """Translate Arabic to English"""
+        try:
+            inputs = self.ar_en_tokenizer(text, return_tensors="pt", padding=True, truncation=True)
+            inputs = {k: v.to(self.device) for k, v in inputs.items()}
+            
+            with torch.no_grad():
+                translated = self.ar_en_model.generate(**inputs, max_length=512)
+            
+            return self.ar_en_tokenizer.decode(translated[0], skip_special_tokens=True)
+        except Exception as e:
+            logger.error(f"Arabic to English translation failed: {str(e)}")
+            return text
     
-    def _process_image_optimized(self, image: Image.Image) -> Image.Image:
-        """Optimized image processing for medical images"""
+    def translate_en_to_ar(self, text: str) -> str:
+        """Translate English to Arabic"""
+        try:
+            inputs = self.en_ar_tokenizer(text, return_tensors="pt", padding=True, truncation=True)
+            inputs = {k: v.to(self.device) for k, v in inputs.items()}
+            
+            with torch.no_grad():
+                translated = self.en_ar_model.generate(**inputs, max_length=512)
+            
+            return self.en_ar_tokenizer.decode(translated[0], skip_special_tokens=True)
+        except Exception as e:
+            logger.error(f"English to Arabic translation failed: {str(e)}")
+            return text
+    
+    def _process_image(self, image: Image.Image) -> Image.Image:
+        """Process image for optimal performance"""
         if image.mode != 'RGB':
             image = image.convert('RGB')
         
-        # Resize maintaining aspect ratio for better medical detail
         if image.size != MAX_IMAGE_SIZE:
-            image = ImageOps.fit(image, MAX_IMAGE_SIZE, Image.Resampling.LANCZOS)
+            image = image.resize(MAX_IMAGE_SIZE, Image.Resampling.LANCZOS)
         
         return image
     
-    def _clean_generated_answer(self, raw_answer: str, original_question: str) -> str:
-        """Intelligently clean the generated answer"""
-        if not raw_answer:
-            return ""
-        
-        # Remove question only if it appears at the beginning
-        answer = raw_answer.strip()
-        
-        # Check if question appears at start of answer
-        question_lower = original_question.lower().strip()
-        answer_lower = answer.lower()
-        
-        if answer_lower.startswith(question_lower):
-            # Remove question from beginning
-            answer = answer[len(original_question):].strip()
-            # Remove common prefixes that might remain
-            answer = re.sub(r'^[,\.\:\?\!]+\s*', '', answer)
-        
-        # Remove common VQA artifacts
-        answer = re.sub(r'^(answer|response|result)[\:\s]+', '', answer, flags=re.IGNORECASE)
-        
-        return answer.strip()
-    
-    def process_query(self, image: Image.Image, question: str) -> Dict[str, Any]:
-        """Process query with enhanced accuracy"""
+    def process_medical_query(self, image: Image.Image, question: str) -> Dict[str, Any]:
+        """Process medical VQA query with proper translation"""
         try:
             start_time = time.time()
             
-            # Process image
-            image = self._process_image_optimized(image)
+            if not question.strip():
+                return {"error": "السؤال فارغ", "success": False}
             
-            # Detect language
+            # Process image
+            image = self._process_image(image)
+            
+            # Detect language and translate if needed
             detected_lang = self._detect_language(question)
             
-            # Create enhanced medical prompt
-            enhanced_question = self._create_medical_prompt(question)
+            if detected_lang == "ar":
+                # Translate Arabic question to English
+                english_question = self.translate_ar_to_en(question)
+                original_question = question
+            else:
+                english_question = question
+                original_question = question
             
-            # Process with model
-            inputs = self.processor(image, enhanced_question, return_tensors="pt").to(self.device)
+            # Process with VQA model
+            inputs = self.vqa_processor(image, english_question, return_tensors="pt")
+            inputs = {k: v.to(self.device) for k, v in inputs.items()}
             
-            # Generate with improved parameters
             with torch.no_grad():
                 if self.device == "cuda":
                     with torch.cuda.amp.autocast():
-                        generated_ids = self.model.generate(
+                        output = self.vqa_model.generate(
                             **inputs,
-                            max_length=128,  # Increased for detailed responses
-                            num_beams=5,     # More beams for better quality
+                            max_length=150,
+                            num_beams=4,
                             early_stopping=True,
-                            do_sample=True,  # Enable sampling
-                            temperature=0.7, # Controlled randomness
-                            top_p=0.9,      # Nucleus sampling
-                            repetition_penalty=1.1  # Avoid repetition
+                            temperature=0.7,
+                            do_sample=True
                         )
                 else:
-                    generated_ids = self.model.generate(
+                    output = self.vqa_model.generate(
                         **inputs,
-                        max_length=128,
-                        num_beams=5,
+                        max_length=150,
+                        num_beams=4,
                         early_stopping=True,
-                        do_sample=True,
                         temperature=0.7,
-                        top_p=0.9,
-                        repetition_penalty=1.1
+                        do_sample=True
                     )
             
-            # Decode and clean answer
-            raw_answer = self.processor.decode(generated_ids[0], skip_special_tokens=True)
-            answer_en = self._clean_generated_answer(raw_answer, enhanced_question)
+            # Decode English answer
+            english_answer = self.vqa_processor.decode(output[0], skip_special_tokens=True)
             
-            # Handle empty or poor answers
-            if not answer_en or len(answer_en) < 5:
-                answer_en = "Unable to provide a clear medical analysis from this image. Please consult a healthcare professional."
+            # Clean answer
+            english_answer = english_answer.strip()
+            if not english_answer or len(english_answer) < 3:
+                english_answer = "No clear medical findings can be determined from this image."
             
-            # Generate Arabic response
+            # Translate answer if original question was in Arabic
             if detected_lang == "ar":
-                answer_ar = self._translate_to_arabic_medical(answer_en, question)
+                arabic_answer = self.translate_en_to_ar(english_answer)
             else:
-                answer_ar = self._translate_to_arabic_medical(answer_en, question)
+                arabic_answer = self.translate_en_to_ar(english_answer)
             
             processing_time = time.time() - start_time
             
             return {
-                "question": question,
-                "answer_en": answer_en,
-                "answer_ar": answer_ar,
+                "original_question": original_question,
+                "english_question": english_question if detected_lang == "ar" else question,
+                "english_answer": english_answer,
+                "arabic_answer": arabic_answer,
                 "detected_language": detected_lang,
                 "processing_time": processing_time,
                 "success": True
@@ -304,60 +192,63 @@ class AccurateMedicalVQA:
 
 # Streamlit Configuration
 def init_app():
-    """Initialize app with optimized settings"""
+    """Initialize app"""
     st.set_page_config(
-        page_title="Accurate Medical AI",
+        page_title="Enhanced Medical VQA",
         layout="wide",
         page_icon="🩺"
     )
 
 def apply_theme():
-    """Apply enhanced theme"""
+    """Apply theme"""
     st.markdown("""
     <style>
         .main-header {
-            background: linear-gradient(135deg, #2E8B57 0%, #228B22 100%);
+            background: linear-gradient(135deg, #2E86AB 0%, #A23B72 100%);
             color: white;
-            padding: 1.5rem;
-            border-radius: 10px;
-            margin-bottom: 1.5rem;
+            padding: 2rem;
+            border-radius: 15px;
+            margin-bottom: 2rem;
             text-align: center;
         }
-        .result-box {
-            background: #f8f9fa;
-            padding: 1rem;
-            border-radius: 8px;
-            border-left: 4px solid #2E8B57;
-            margin: 0.5rem 0;
+        .result-container {
+            background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+            padding: 1.5rem;
+            border-radius: 12px;
+            border-left: 5px solid #2E86AB;
+            margin: 1rem 0;
         }
         .arabic-text {
             direction: rtl;
             text-align: right;
             font-family: 'Arial', sans-serif;
+            font-size: 1.1em;
+            line-height: 1.6;
+        }
+        .english-text {
+            font-size: 1.1em;
             line-height: 1.6;
         }
         .stButton > button {
-            background: linear-gradient(135deg, #2E8B57 0%, #228B22 100%);
+            background: linear-gradient(135deg, #2E86AB, #A23B72);
             color: white;
             border: none;
-            border-radius: 8px;
-            padding: 0.5rem 1.5rem;
+            border-radius: 10px;
+            padding: 0.8rem 2rem;
+            font-size: 1.1em;
+            font-weight: bold;
             width: 100%;
+            transition: all 0.3s ease;
         }
-        .fast-stats {
+        .stButton > button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(46, 134, 171, 0.4);
+        }
+        .stats-container {
             background: #e8f5e8;
-            padding: 0.5rem;
-            border-radius: 5px;
-            font-size: 0.9em;
-            margin: 0.5rem 0;
-        }
-        .accuracy-indicator {
-            background: #d4edda;
-            border: 1px solid #c3e6cb;
-            color: #155724;
-            padding: 0.75rem;
+            padding: 1rem;
             border-radius: 8px;
-            margin: 0.5rem 0;
+            margin: 1rem 0;
         }
     </style>
     """, unsafe_allow_html=True)
@@ -365,10 +256,10 @@ def apply_theme():
 @st.cache_resource(show_spinner=False)
 def get_vqa_system():
     """Get cached VQA system"""
-    return AccurateMedicalVQA()
+    return EnhancedMedicalVQA()
 
 def validate_file(uploaded_file) -> tuple:
-    """Quick file validation"""
+    """Validate uploaded file"""
     if not uploaded_file:
         return False, "No file uploaded"
     
@@ -377,7 +268,7 @@ def validate_file(uploaded_file) -> tuple:
     
     ext = uploaded_file.name.split('.')[-1].lower()
     if ext not in SUPPORTED_FORMATS:
-        return False, f"Use: {', '.join(SUPPORTED_FORMATS)}"
+        return False, f"Supported formats: {', '.join(SUPPORTED_FORMATS)}"
     
     return True, "Valid file"
 
@@ -389,23 +280,23 @@ def main():
     # Header
     st.markdown("""
     <div class="main-header">
-        <h1>🩺 Accurate Medical AI Assistant</h1>
-        <p><strong>Enhanced for Precision - Advanced Medical Image Analysis</strong></p>
+        <h1>🩺 Enhanced Medical VQA Assistant</h1>
+        <p><strong>Advanced AI-Powered Medical Image Analysis with Bilingual Support</strong></p>
     </div>
     """, unsafe_allow_html=True)
     
     # Initialize system
     vqa_system = get_vqa_system()
     
-    # Load model
-    if vqa_system.model is None:
-        with st.spinner("🔄 Loading enhanced medical model..."):
-            success = vqa_system.load_model()
+    # Load models
+    if vqa_system.vqa_model is None:
+        with st.spinner("🚀 Loading advanced models (VQA + Translation)..."):
+            success = vqa_system.load_models()
             if success:
-                st.success("✅ Advanced medical model loaded successfully!")
+                st.success("✅ All models loaded successfully! Ready for analysis!")
                 st.balloons()
             else:
-                st.error("❌ Model loading failed")
+                st.error("❌ Failed to load models")
                 st.stop()
     
     # Main interface
@@ -415,9 +306,9 @@ def main():
         st.markdown("### 📤 Upload Medical Image")
         
         uploaded_file = st.file_uploader(
-            "Choose medical image (max 5MB):",
+            "Choose medical image:",
             type=SUPPORTED_FORMATS,
-            help="Supported: JPG, JPEG, PNG"
+            help="Supported formats: JPG, JPEG, PNG (max 5MB)"
         )
         
         if uploaded_file:
@@ -427,7 +318,7 @@ def main():
                 try:
                     image = Image.open(uploaded_file)
                     st.image(image, caption=uploaded_file.name, use_container_width=True)
-                    st.info(f"📊 Size: {image.size[0]}×{image.size[1]}")
+                    st.info(f"📊 Resolution: {image.size[0]}×{image.size[1]} pixels")
                 except Exception as e:
                     st.error(f"❌ Image error: {str(e)}")
                     uploaded_file = None
@@ -436,51 +327,51 @@ def main():
                 uploaded_file = None
     
     with col2:
-        st.markdown("### 💭 Ask Medical Question")
+        st.markdown("### 💭 Ask Your Medical Question")
         
         # Language selector
         language = st.selectbox(
-            "Language:",
+            "Select Language:",
             options=["ar", "en"],
-            format_func=lambda x: "🇪🇬 العربية" if x == "ar" else "🇺🇸 English"
+            format_func=lambda x: "🇸🇦 العربية (Arabic)" if x == "ar" else "🇺🇸 English"
         )
         
         # Question input
         if language == "ar":
-            placeholder = "ما التشخيص المحتمل لهذه الصورة؟ أو صف ما تراه في الصورة"
+            placeholder = "مثال: ما هو التشخيص المحتمل لهذه الصورة؟ هل تظهر أي علامات مرضية؟"
             label = "السؤال الطبي:"
         else:
-            placeholder = "What is the likely diagnosis? Or describe what you see in the image"
+            placeholder = "Example: What is the likely diagnosis? Are there any abnormal findings?"
             label = "Medical Question:"
         
         question = st.text_area(
             label,
-            height=100,
-            placeholder=placeholder
+            height=120,
+            placeholder=placeholder,
+            help="Ask specific medical questions about the uploaded image"
         )
         
         # Analyze button
-        if st.button("🔍 Accurate Analysis"):
+        if st.button("🔍 Analyze Medical Image"):
             if not uploaded_file:
-                st.warning("⚠️ Upload image first")
+                st.warning("⚠️ Please upload a medical image first")
             elif not question.strip():
-                st.warning("⚠️ Enter question")
+                st.warning("⚠️ Please enter your medical question")
             else:
-                with st.spinner("🧠 Analyzing with enhanced AI..."):
+                with st.spinner("🔬 Analyzing medical image..."):
                     try:
                         image = Image.open(uploaded_file)
-                        result = vqa_system.process_query(image, question)
+                        result = vqa_system.process_medical_query(image, question)
                         
                         if result["success"]:
                             st.markdown("---")
-                            st.markdown("### 🎯 Accurate Medical Analysis")
+                            st.markdown("### 📋 Medical Analysis Results")
                             
-                            # Processing time and accuracy indicator
+                            # Processing stats
                             st.markdown(f"""
-                            <div class="accuracy-indicator">
-                                ✅ <strong>Enhanced Analysis Complete</strong> | 
-                                ⏱️ <strong>{result['processing_time']:.2f}s</strong> | 
-                                🔍 <strong>{'Arabic' if result['detected_language'] == 'ar' else 'English'}</strong>
+                            <div class="stats-container">
+                                ⏱️ <strong>Processing Time:</strong> {result['processing_time']:.2f} seconds | 
+                                🌐 <strong>Detected Language:</strong> {'Arabic' if result['detected_language'] == 'ar' else 'English'}
                             </div>
                             """, unsafe_allow_html=True)
                             
@@ -488,24 +379,33 @@ def main():
                             res_col1, res_col2 = st.columns(2)
                             
                             with res_col1:
-                                st.markdown("**🇺🇸 English Analysis**")
-                                st.markdown(f"**Q:** {result['question']}")
-                                st.markdown(f"**Medical Finding:** {result['answer_en']}")
+                                st.markdown("#### 🇺🇸 English Analysis")
+                                st.markdown(f"""
+                                <div class="result-container">
+                                    <div class="english-text">
+                                        <strong>Question:</strong> {result['english_question']}<br><br>
+                                        <strong>Medical Analysis:</strong> {result['english_answer']}
+                                    </div>
+                                </div>
+                                """, unsafe_allow_html=True)
                             
                             with res_col2:
-                                st.markdown("**🇪🇬 التحليل الطبي بالعربية**")
+                                st.markdown("#### 🇸🇦 التحليل باللغة العربية")
                                 st.markdown(f"""
-                                <div class="arabic-text">
-                                    <strong>السؤال:</strong> {result['question']}<br><br>
-                                    <strong>النتيجة الطبية:</strong> {result['answer_ar']}
+                                <div class="result-container">
+                                    <div class="arabic-text">
+                                        <strong>السؤال:</strong> {result['original_question']}<br><br>
+                                        <strong>التحليل الطبي:</strong> {result['arabic_answer']}
+                                    </div>
                                 </div>
                                 """, unsafe_allow_html=True)
                             
                             # Medical disclaimer
-                            st.warning("⚠️ **للأغراض التعليمية فقط - استشر طبيب مختص للتشخيص النهائي**")
+                            st.error("⚠️ **تنبيه طبي مهم: هذا التحليل للأغراض التعليمية فقط - يجب استشارة طبيب مختص للتشخيص النهائي**")
+                            st.error("⚠️ **Medical Disclaimer: This analysis is for educational purposes only - consult a qualified physician for final diagnosis**")
                             
                         else:
-                            st.error(f"❌ Analysis failed: {result.get('error', 'Unknown')}")
+                            st.error(f"❌ Analysis failed: {result.get('error', 'Unknown error')}")
                     
                     except Exception as e:
                         st.error(f"❌ Processing error: {str(e)}")
@@ -514,43 +414,49 @@ def main():
     with st.sidebar:
         st.markdown("### 📊 System Status")
         
-        if vqa_system.model is not None:
-            st.success("✅ Model: Ready")
+        if vqa_system.vqa_model is not None:
+            st.success("✅ VQA Model: Ready")
+            st.success("✅ Translation Models: Ready")
             st.info(f"🖥️ Device: {vqa_system.device.upper()}")
-            st.success("🎯 Enhanced Accuracy Mode")
         else:
-            st.error("❌ Model: Not Ready")
+            st.error("❌ Models: Not Ready")
         
         st.markdown("---")
         st.markdown("""
-        **🎯 Accuracy Features:**
-        - ✅ Enhanced medical prompts
-        - ✅ Advanced response generation
-        - ✅ Comprehensive Arabic translation
-        - ✅ Medical context awareness
+        ### 🚀 Enhanced Features:
+        - ✅ Specialized medical VQA model
+        - ✅ Professional translation (MarianMT)
+        - ✅ Bilingual support (Arabic/English)
+        - ✅ Advanced image processing
+        - ✅ Optimized inference
         
-        **📋 Best Practices:**
-        1. Upload clear medical images
-        2. Ask specific questions
-        3. Use medical terminology
-        4. Specify body parts/regions
+        ### 📖 How to Use:
+        1. Upload medical image (X-ray, CT, MRI, etc.)
+        2. Choose your preferred language
+        3. Ask specific medical questions
+        4. Get detailed bilingual analysis
         
-        **🩺 Supported Analysis:**
-        - X-rays, CT scans, MRI
-        - Chest, brain, abdomen imaging
-        - Bone fractures, infections
-        - Normal vs abnormal findings
+        ### 📋 Specifications:
+        - **Languages:** Arabic, English
+        - **Image Formats:** JPG, PNG, JPEG
+        - **Max File Size:** 5MB
+        - **Resolution:** Auto-optimized
         """)
         
         st.markdown("---")
-        st.markdown("**⚠️ Medical Disclaimer**")
-        st.caption("This AI provides preliminary analysis for educational purposes. Always consult qualified healthcare professionals for medical diagnosis and treatment decisions.")
+        st.markdown("### ⚠️ Important Medical Notice")
+        st.caption("""
+        This AI system is designed for educational and research purposes only. 
+        It should NOT replace professional medical consultation, diagnosis, or treatment. 
+        Always consult qualified healthcare professionals for medical decisions.
+        """)
     
     # Footer
     st.markdown("---")
     st.markdown("""
-    <div style='text-align: center; color: #666;'>
-        <p><strong>Accurate Medical VQA v2.0</strong> | Enhanced Precision & Arabic Support</p>
+    <div style='text-align: center; color: #666; padding: 1rem;'>
+        <p><strong>Enhanced Medical VQA System v2.0</strong></p>
+        <p>Powered by Advanced AI Models | Professional Translation | Bilingual Support</p>
     </div>
     """, unsafe_allow_html=True)
 
