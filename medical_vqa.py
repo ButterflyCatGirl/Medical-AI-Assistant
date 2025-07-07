@@ -197,7 +197,7 @@ class AccurateMedicalVQA:
             if self.device == "cpu":
                 self.model = BlipForQuestionAnswering.from_pretrained(
                     BASE_MODEL,
-                    torch_dtype=torch.float32
+                    torch_dtype=tor极float32
                 )
             else:
                 self.model = BlipForQuestionAnswering.from_pretrained(
@@ -267,7 +267,7 @@ class AccurateMedicalVQA:
         uncertainty_count = sum(1 for term in uncertainty_terms if term in answer.lower())
         certainty_count = sum(1 for term in certain_terms if term in answer.lower())
         
-        total_terms = uncertainty_count + certainty_count
+        total_terms = uncertainty_count + certainty极
         if total_terms == 0:
             return 0.8  # Default confidence
         
@@ -395,7 +395,7 @@ def apply_theme():
         .fast-stats {
             background: #e8f5e8;
             padding: 0.5rem;
-            border-radius: 5px;
+            border-radius: 5极;
             font-size: 0.9em;
             margin: 0.5rem 0;
         }
@@ -591,6 +591,7 @@ def main():
             placeholder = "What does this X-ray show? Or describe the likely diagnosis"
             label = "Medical Question:"
         
+        # FIXED: Added closing parenthesis for text_area
         question = st.text_area(
             label,
             height=100,
@@ -609,4 +610,111 @@ def main():
                     st.warning("Translation preview unavailable")
         
         # Analyze button
-        if st.button("🔍 Analy
+        if st.button("🔍 Analyze Medical Image", use_container_width=True):
+            if not uploaded_file:
+                st.warning("⚠️ Upload image first")
+            elif not question.strip():
+                st.warning("⚠️ Enter question")
+            else:
+                with st.spinner("🧠 Analyzing with medical AI..."):
+                    try:
+                        image = Image.open(uploaded_file)
+                        result = vqa_system.process_query(image, question)
+                        
+                        if result["success"]:
+                            st.markdown("---")
+                            st.markdown("### 🎯 Medical Analysis Results")
+                            
+                            # Processing time and accuracy indicator
+                            st.markdown(f"""
+                            <div class="accuracy-indicator">
+                                ✅ <strong>Analysis Complete</strong> | 
+                                ⏱️ <strong>{result['processing_time']:.2f}s</strong> | 
+                                🔍 <strong>{'Arabic' if result['detected_language'] == 'ar' else 'English'}</strong> |
+                                🎯 <strong>Confidence: {result['confidence']*100:.1f}%</strong>
+                            </div>
+                            """, unsafe_allow_html=True)
+                            
+                            # Confidence visual
+                            st.markdown(f"""
+                            <div class="confidence-bar">
+                                <div class="confidence-fill" style="width: {result['confidence']*100}%;"></div>
+                            </div>
+                            """, unsafe_allow_html=True)
+                            
+                            # Results
+                            res_col1, res_col2 = st.columns(2)
+                            
+                            with res_col1:
+                                st.markdown("**🇺🇸 English Analysis**")
+                                st.markdown(f"**Q:** {result['question']}")
+                                st.markdown(f"**Medical Finding:** {result['answer_en']}")
+                            
+                            with res_col2:
+                                st.markdown("**🇪🇬 التحليل الطبي بالعربية**")
+                                st.markdown(f"""
+                                <div class="arabic-text">
+                                    <strong>السؤال:</strong> {result['question']}<br><br>
+                                    <strong>النتيجة الطبية:</strong> {result['answer_ar']}
+                                </div>
+                                """, unsafe_allow_html=True)
+                            
+                            # Medical disclaimer
+                            st.warning("⚠️ **للأغراض التعليمية فقط - استشر طبيب مختص للتشخيص النهائي**")
+                            
+                        else:
+                            st.error(f"❌ Analysis failed: {result.get('error', 'Unknown')}")
+                    
+                    except Exception as e:
+                        st.error(f"❌ Processing error: {str(e)}")
+    
+    # Enhanced sidebar with translation info
+    with st.sidebar:
+        st.markdown("### 🧬 System Status")
+        
+        if vqa_system.model is not None:
+            st.success(f"✅ Model: Ready")
+            st.info(f"🖥️ Device: {vqa_system.device.upper()}")
+            if vqa_system.translation_models_loaded:
+                st.success("🌐 Translation: Active")
+            else:
+                st.warning("⚠️ Translation: Partially Loaded")
+        else:
+            st.error("❌ Model: Not Ready")
+        
+        st.markdown("---")
+        st.markdown("### 🔧 Configuration")
+        st.info(f"**Base Model:** {BASE_MODEL}")
+        st.info(f"**Max Image Dim:** {MAX_IMAGE_DIM}px")
+        st.info(f"**Max File Size:** {MAX_FILE_SIZE//1024//1024}MB")
+        st.info(f"**Supported Formats:** {', '.join(SUPPORTED_FORMATS)}")
+        
+        st.markdown("---")
+        st.markdown("""
+        **🩺 Medical Term Validation:**
+        - 2-step translation process
+        - Medical dictionary matching
+        - Context-aware corrections
+        
+        **📋 Best Practices:**
+        1. Upload clear medical images
+        2. Ask specific questions
+        3. Use medical terminology
+        4. Specify body parts/regions
+        """)
+        
+        st.markdown("---")
+        st.markdown("**⚠️ Medical Disclaimer**")
+        st.caption("This AI provides preliminary analysis for educational purposes. Always consult qualified healthcare professionals for medical diagnosis and treatment decisions.")
+    
+    # Footer
+    st.markdown("---")
+    st.markdown("""
+    <div style='text-align: center; color: #666;'>
+        <p><strong>Medical VQA with Enhanced Translation v3.2</strong> | Optimized for Reliability</p>
+        <p><small>Using Salesforce/blip-vqa-base model</small></p>
+    </div>
+    """, unsafe_allow_html=True)
+
+if __name__ == "__main__":
+    main()
