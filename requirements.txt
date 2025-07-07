@@ -4,4 +4,4 @@ torchvision>=0.15.0
 transformers>=4.35.0
 Pillow>=9.5.0
 accelerate>=0.20.0
-sentencepiece==0.1.99
+#sentencepiece==0.1.99
