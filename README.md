@@ -1,13 +1,14 @@
-# Medical VQA AI
+---
+title: Medical VQA Multilingual
+emoji: 🏥
+colorFrom: blue
+colorTo: red
+sdk: streamlit
+sdk_version: 1.28.0
+app_file: app.py
+pinned: false
+---
 
-AI-powered medical image analysis using Vision Transformers.
+# Medical VQA - Multilingual AI Assistant
 
-## 🔧 Features
-- Analyze X-rays, CT scans, and MRI images
-- Arabic/English support
-- Fast inference (3-5 seconds)
-- Medical terminology aware
-
-## 📦 Requirements
-```bash
-pip install -r requirements.txt
+A bilingual (Arabic-English) medical Visual Question Answering system using fine-tuned LLaVA model.
