@@ -15,7 +15,7 @@ torch==2.1.0
 #torchvision==0.16.0
 Pillow==10.0.1
 requests==2.31.0
-numpy==1.24.3
+#numpy==1.24.3
 #accelerate==0.24.1
 sentencepiece==0.1.99
 protobuf==4.24.4
