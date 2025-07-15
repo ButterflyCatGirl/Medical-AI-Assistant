@@ -68,7 +68,9 @@ def load_translation_model():
     try:
       #  model_name = "facebook/nllb-200-distilled-600M"
       #  model_name = "google/mt5-small"
-        model_name = "Helsinki-NLP/opus-mt-ar-en"
+        model_name = "Helsinki-NLP/opus-mt-ar-en",
+        "facebook/nllb-200-distilled-600M",
+        "google/mt5-small"
     
         tokenizer = AutoTokenizer.from_pretrained(model_name)
         model = AutoModelForSeq2SeqLM.from_pretrained(model_name)
