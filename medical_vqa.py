@@ -52,7 +52,7 @@ st.markdown("""
 def load_medical_vqa_model():
     """Load medical VQA model - using lighter BLIP model for better deployment"""
     try:
-        model_name = "Salesforce/blip-vqa-base"
+        model_name = "sharawy53/final_diploma_blip-med-rad-arabic"
         processor = BlipProcessor.from_pretrained(model_name)
         model = BlipForQuestionAnswering.from_pretrained(model_name)
         return processor, model
