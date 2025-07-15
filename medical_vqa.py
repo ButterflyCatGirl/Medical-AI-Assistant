@@ -52,7 +52,7 @@ st.markdown("""
 def load_medical_vqa_model():
     """Load medical VQA model - using lighter BLIP model for better deployment"""
     try:
-        model_name = "sharawy53/final_diploma_blip-med-rad-arabic"
+        model_name = "Salesforce/blip-vqa-base"
         processor = BlipProcessor.from_pretrained(model_name)
         model = BlipForQuestionAnswering.from_pretrained(model_name)
         return processor, model
@@ -154,7 +154,7 @@ def main():
                 col1, col2 = st.columns([1, 1])
                 
                 with col1:
-                    st.image(image, caption="Uploaded Medical Image", use_container_width=True)
+                    st.image(image, caption="Uploaded Medical Image", use_column_width=True)
                     st.info(f"Image size: {image.size[0]}x{image.size[1]} pixels")
                 
                 with col2:
