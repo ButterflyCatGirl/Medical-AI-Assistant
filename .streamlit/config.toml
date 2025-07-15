@@ -3,6 +3,7 @@ headless = true
 enableCORS = false
 enableXsrfProtection = false
 maxUploadSize = 200
+port = 8501
 
 [browser]
 gatherUsageStats = false
@@ -16,3 +17,12 @@ font = "sans serif"
 
 [client]
 caching = true
+showErrorDetails = true
+
+[runner]
+magicEnabled = true
+installTracer = true
+fixMatplotlib = true
+
+[logger]
+level = "info"
