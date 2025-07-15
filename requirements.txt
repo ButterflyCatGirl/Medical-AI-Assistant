@@ -11,7 +11,7 @@ protobuf>=4.25.1
 tokenizers>=0.15.0
 huggingface-hub>=0.19.4
 sentence-transformers>=2.2.2
-sentencepiece>=0.1.99
+#sentencepiece>=0.1.99
 
 #streamlit>=1.28.0
 #transformers>=4.35.0
