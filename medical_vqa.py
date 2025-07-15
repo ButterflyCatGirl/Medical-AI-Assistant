@@ -66,7 +66,7 @@ def load_translation_model():
     """Load Arabic-English translation model"""
     try:
         model_name = "facebook/nllb-200-distilled-600M"
-        model_name = "google/mt5-small"
+      or model_name = "google/mt5-small"
     
         tokenizer = AutoTokenizer.from_pretrained(model_name)
         model = AutoModelForSeq2SeqLM.from_pretrained(model_name)
