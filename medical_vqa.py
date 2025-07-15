@@ -5,7 +5,6 @@ from PIL import Image
 import io
 import requests
 from sentence_transformers import SentenceTransformer
-import sentencepiece
 
 
 # Configure page
