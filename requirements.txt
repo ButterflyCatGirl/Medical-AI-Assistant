@@ -1,16 +1,16 @@
-streamlit==1.39.0
-torch==2.1.0
-transformers==4.36.0
-Pillow==10.1.0
-#accelerate==0.24.1
-safetensors==0.4.1
-requests==2.31.0
-numpy==1.26.0
-opencv-python-headless==4.8.1.78
-protobuf==4.25.1
-tokenizers==0.15.0
-huggingface-hub==0.19.4
-sentence-transformers==2.2.2
+streamlit>=1.39.0
+torch>=2.1.0
+transformers>=4.36.0
+Pillow>=10.1.0
+accelerate>=0.24.1
+safetensors>=0.4.1
+requests>=2.31.0
+numpy>=1.26.0
+opencv-python-headless>=4.8.1.78
+protobuf>=4.25.1
+tokenizers>=0.15.0
+huggingface-hub>=0.19.4
+sentence-transformers>=2.2.2
 
 
 
