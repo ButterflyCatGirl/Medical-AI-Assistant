@@ -4,7 +4,8 @@ from transformers import AutoTokenizer, AutoModelForSeq2SeqLM, BlipProcessor, Bl
 from PIL import Image
 import io
 import requests
-from sentence_transformers import SentenceTransformer, sentencepiece
+from sentence_transformers import SentenceTransformer
+import sentencepiece
 
 
 # Configure page
