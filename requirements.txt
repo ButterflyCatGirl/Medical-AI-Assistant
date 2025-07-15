@@ -36,7 +36,7 @@ sentence-transformers==2.2.2
 #sentencepiece==0.1.99
 #protobuf==4.24.4
 
---upgrade
+#--upgrade
 #streamlit>=1.46.1
 #transformers>=4.53.2
 #torch>=2.7.1
