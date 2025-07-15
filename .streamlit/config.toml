@@ -2,7 +2,7 @@
 headless = true
 enableCORS = false
 enableXsrfProtection = false
-maxUploadSize = 200
+maxUploadSize = 50
 port = 8501
 
 [browser]
@@ -23,6 +23,3 @@ showErrorDetails = true
 magicEnabled = true
 installTracer = true
 fixMatplotlib = true
-
-[logger]
-level = "info"
