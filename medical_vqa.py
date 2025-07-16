@@ -1,6 +1,7 @@
 import streamlit as st
 import torch
-from transformers import AutoTokenizer, AutoModelForSeq2SeqLM, BlipProcessor, BlipForQuestionAnswering
+from transformers import BlipProcessor, BlipForQuestionAnswering
+from transformers import T5Tokenizer, T5ForConditionalGeneration
 from PIL import Image
 import re
 import warnings
@@ -72,6 +73,14 @@ st.markdown("""
         background-color: #10b981;
         color: white;
     }
+    .radio-horizontal {
+        display: flex;
+        gap: 1rem;
+        margin-bottom: 1rem;
+    }
+    .radio-horizontal label {
+        margin-right: 1rem;
+    }
 </style>
 """, unsafe_allow_html=True)
 
@@ -89,26 +98,15 @@ def load_medical_vqa_model():
 
 @st.cache_resource
 def load_translation_model():
-    """Load translation model without sentencepiece dependency"""
+    """Load translation model without AutoTokenizer dependency"""
     try:
-        # Using T5 models that don't require sentencepiece
-        # English to Arabic
-        en_ar_tokenizer = AutoTokenizer.from_pretrained("t5-base")
-        en_ar_model = AutoModelForSeq2SeqLM.from_pretrained("t5-base")
-        
-        # Arabic to English
-        ar_en_tokenizer = AutoTokenizer.from_pretrained("t5-base")
-        ar_en_model = AutoModelForSeq2SeqLM.from_pretrained("t5-base")
-        
-        return {
-            'ar_en_tokenizer': ar_en_tokenizer,
-            'ar_en_model': ar_en_model,
-            'en_ar_tokenizer': en_ar_tokenizer,
-            'en_ar_model': en_ar_model
-        }
+        # Using T5 tokenizer directly instead of AutoTokenizer
+        tokenizer = T5Tokenizer.from_pretrained("t5-small")
+        model = T5ForConditionalGeneration.from_pretrained("t5-small")
+        return tokenizer, model
     except Exception as e:
         st.error(f"Error loading translation model: {str(e)}")
-        return None
+        return None, None
 
 def is_arabic(text):
     """Check if text contains Arabic characters"""
@@ -120,47 +118,37 @@ def translate_text(text, translation_models, max_length=512):
     if not text.strip():
         return ""
     
+    tokenizer, model = translation_models
+    
     try:
         if is_arabic(text):
             # Arabic to English translation
-            inputs = translation_models['ar_en_tokenizer'](
-                f"translate Arabic to English: {text}",
-                return_tensors="pt", 
-                padding=True,
-                truncation=True,
-                max_length=max_length
-            )
-            with torch.no_grad():
-                generated_ids = translation_models['ar_en_model'].generate(
-                    **inputs,
-                    max_length=max_length,
-                    num_beams=4,
-                    early_stopping=True
-                )
-            translated = translation_models['ar_en_tokenizer'].batch_decode(
-                generated_ids, 
-                skip_special_tokens=True
-            )[0]
+            input_text = f"translate Arabic to English: {text}"
         else:
             # English to Arabic translation
-            inputs = translation_models['en_ar_tokenizer'](
-                f"translate English to Arabic: {text}",
-                return_tensors="pt", 
-                padding=True,
-                truncation=True,
-                max_length=max_length
+            input_text = f"translate English to Arabic: {text}"
+        
+        inputs = tokenizer(
+            input_text,
+            return_tensors="pt", 
+            padding=True,
+            truncation=True,
+            max_length=max_length
+        )
+        
+        with torch.no_grad():
+            generated_ids = model.generate(
+                **inputs,
+                max_length=max_length,
+                num_beams=4,
+                early_stopping=True
             )
-            with torch.no_grad():
-                generated_ids = translation_models['en_ar_model'].generate(
-                    **inputs,
-                    max_length=max_length,
-                    num_beams=4,
-                    early_stopping=True
-                )
-            translated = translation_models['en_ar_tokenizer'].batch_decode(
-                generated_ids, 
-                skip_special_tokens=True
-            )[0]
+        
+        translated = tokenizer.batch_decode(
+            generated_ids, 
+            skip_special_tokens=True
+        )[0]
+        
         return translated
     except Exception as e:
         return f"Translation error: {str(e)}"
@@ -234,10 +222,18 @@ def main():
             vqa_processor, vqa_model = load_medical_vqa_model()
             translation_models = load_translation_model()
         
-        if vqa_processor and vqa_model and translation_models:
+        model_status = ""
+        if vqa_processor and vqa_model:
             st.sidebar.success("✅ Medical VQA Model: Ready")
+        else:
+            model_status += "❌ Medical VQA Model: Failed to load\n"
+        
+        if translation_models:
             st.sidebar.success("✅ Translation Model: Ready")
-            
+        else:
+            model_status += "❌ Translation Model: Failed to load\n"
+        
+        if not model_status:
             # File upload
             uploaded_file = st.file_uploader("Choose a medical image...", 
                                            type=["jpg", "jpeg", "png", "bmp"],
@@ -254,11 +250,13 @@ def main():
                 
                 with col2:
                     # Language selector
+                    st.markdown('<div class="radio-horizontal">', unsafe_allow_html=True)
                     lang = st.radio("Select Language:", 
                                    ["English", "العربية"],
                                    horizontal=True,
                                    index=0 if st.session_state.lang == 'english' else 1,
                                    label_visibility="collapsed")
+                    st.markdown('</div>', unsafe_allow_html=True)
                     
                     st.session_state.lang = 'english' if lang == "English" else 'arabic'
                     
@@ -312,7 +310,7 @@ def main():
                             # If question is in English, translate to Arabic for the model
                             if not is_arabic(question):
                                 with st.spinner("Translating question to Arabic..."):
-                                    question = translate_text(question, translation_models)
+                                    question = translate_text(question, translation_models, max_length=128)
                             
                             # Add medical context
                             contextualized_question = get_medical_context(question)
@@ -324,7 +322,7 @@ def main():
                             
                             # Translate answer to English
                             with st.spinner("Translating answer to English..."):
-                                english_answer = translate_text(arabic_answer, translation_models)
+                                english_answer = translate_text(arabic_answer, translation_models, max_length=128)
                             
                             # Display results
                             st.markdown('<div class="result-box">', unsafe_allow_html=True)
@@ -368,7 +366,7 @@ def main():
                         else:
                             st.warning("Please enter a question about the image.")
         else:
-            st.sidebar.error("❌ Models failed to load")
+            st.sidebar.error(model_status)
             st.markdown('<div class="error-box">', unsafe_allow_html=True)
             st.error("**Model Loading Error**: Some models failed to load. This might be due to:")
             st.write("- Insufficient memory resources")
@@ -420,7 +418,7 @@ def main():
             # Display model information
             st.subheader("🧠 AI Models Used")
             st.write("- Medical VQA: sharawy53/final_diploma_blip-med-rad-arabic")
-            st.write("- Translation: T5 base model")
+            st.write("- Translation: T5 small model")
             
         except:
             st.write("- System information unavailable")
