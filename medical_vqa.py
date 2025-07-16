@@ -197,6 +197,20 @@ def analyze_medical_image(image, question, processor, model):
     except Exception as e:
         return f"Error analyzing image: {str(e)}"
 
+def ensure_arabic_answer(answer, source_lang='en', target_lang='ar'):
+    """Ensure the answer is in Arabic, translate if necessary"""
+    if is_arabic(answer):
+        return answer, False  # Already in Arabic, no translation needed
+    
+    try:
+        # Translate to Arabic if not already in Arabic
+        translated, success = translate_text(answer, source_lang, target_lang)
+        if success:
+            return translated, True
+        return answer, False
+    except:
+        return answer, False
+
 def get_medical_context(question):
     """Add medical context to questions"""
     medical_keywords = {
@@ -283,7 +297,7 @@ def main():
                 col1, col2 = st.columns([1, 1])
                 
                 with col1:
-                    st.image(image, caption="Uploaded Medical Image", use_column_width=True)
+                    st.image(image, caption="Uploaded Medical Image", use_container_width=True)
                     st.info(f"Image size: {image.size[0]}x{image.size[1]} pixels")
                 
                 with col2:
@@ -414,6 +428,9 @@ def main():
                                 arabic_answer = analyze_medical_image(image, contextualized_question, 
                                                                      vqa_processor, vqa_model)
                             
+                            # Ensure the answer is properly in Arabic for display
+                            arabic_answer_display, arabic_translated = ensure_arabic_answer(arabic_answer)
+                            
                             # Always translate the answer to English
                             with st.spinner("Translating answer to English..."):
                                 english_answer, success = translate_text(
@@ -457,7 +474,9 @@ def main():
                             
                             # Arabic answer display with RTL support
                             st.markdown('<div class="translation-item rtl-text">', unsafe_allow_html=True)
-                            st.markdown(f'<strong>الإجابة:</strong> <span>{arabic_answer}</span> <span class="language-badge arabic-badge">AR</span>', unsafe_allow_html=True)
+                            st.markdown(f'<strong>الإجابة:</strong> <span>{arabic_answer_display}</span> <span class="language-badge arabic-badge">AR</span>', unsafe_allow_html=True)
+                            if arabic_translated:
+                                st.markdown('<span class="warning-badge">مترجم</span>', unsafe_allow_html=True)
                             st.markdown('</div>', unsafe_allow_html=True)
                             
                             st.markdown('</div>', unsafe_allow_html=True)  # Close translation-box
@@ -505,6 +524,7 @@ def main():
         - **NOT a substitute** for professional medical diagnosis
         - Always consult qualified healthcare professionals
         - AI responses may contain errors or limitations
+        - Medical terms may be translated for better understanding
         """)
         st.markdown('</div>', unsafe_allow_html=True)
         
