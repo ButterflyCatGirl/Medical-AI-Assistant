@@ -1,13 +1,13 @@
-streamlit==1.28.1
-torch==2.0.1+cpu
-torchvision==0.15.2+cpu
-transformers==4.30.2
-Pillow==10.0.1
-requests==2.31.0
-numpy==1.24.3
-opencv-python-headless==4.8.1.78
-protobuf==4.25.0
-googletrans==4.0.0rc1
+streamlit>=1.28.1
+torch>=2.0.1+cpu
+torchvision>=0.15.2+cpu
+transformers>=4.30.2
+Pillow>=10.0.1
+requests>=2.31.0
+numpy>=1.24.3
+opencv-python-headless>=4.8.1.78
+protobuf>=4.25.0
+googletrans>=4.0.0rc1
 
 
 
