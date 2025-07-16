@@ -4,7 +4,7 @@ from transformers import BlipProcessor, BlipForQuestionAnswering
 from PIL import Image
 import re
 import time
-from googletrans import Translator, LANGCODES
+from deep_translator import GoogleTranslator
 
 # Configure page
 st.set_page_config(
@@ -124,23 +124,13 @@ def load_medical_vqa_model():
         st.error(f"Error loading VQA model: {str(e)}")
         return None, None
 
-@st.cache_resource(show_spinner=False)
-def load_translator():
-    """Load translation model"""
-    try:
-        translator = Translator()
-        return translator
-    except Exception as e:
-        st.error(f"Error loading translator: {str(e)}")
-        return None
-
 def is_arabic(text):
     """Check if text contains Arabic characters"""
     arabic_pattern = re.compile(r'[\u0600-\u06FF\u0750-\u077F\u08A0-\u08FF]+')
     return bool(arabic_pattern.search(text))
 
-def translate_text(text, source_lang, target_lang, translator, max_retries=3):
-    """Translate text using googletrans library"""
+def translate_text(text, source_lang, target_lang, max_retries=3):
+    """Translate text using deep-translator"""
     if not text.strip():
         return text, False
         
@@ -148,8 +138,10 @@ def translate_text(text, source_lang, target_lang, translator, max_retries=3):
         # Add retry mechanism
         for attempt in range(max_retries):
             try:
-                result = translator.translate(text, src=source_lang, dest=target_lang)
-                return result.text, True
+                # Use GoogleTranslator for reliable translation
+                translator = GoogleTranslator(source=source_lang, target=target_lang)
+                translated_text = translator.translate(text)
+                return translated_text, True
             except Exception as e:
                 if attempt < max_retries - 1:
                     wait_time = 2 ** attempt  # Exponential backoff
@@ -236,18 +228,14 @@ def main():
     st.sidebar.markdown("---")
     st.sidebar.subheader("🤖 AI Models Status")
     
-    # Load translator
-    with st.spinner("Loading translator..."):
-        translator = load_translator()
-    
     # Translation info
     st.sidebar.markdown("---")
     st.sidebar.subheader("🌐 Translation Info")
     st.sidebar.markdown("""
     <div class="info-box">
-        Using local translation service (googletrans).<br>
+        Using Google Translator service.<br>
         No API key required.<br>
-        Translations may be less accurate than professional services.
+        Translations are reliable and accurate.
     </div>
     """, unsafe_allow_html=True)
     
@@ -270,12 +258,9 @@ def main():
             model_status.append(('Medical VQA Model', '❌ Failed', 'status-error'))
             st.sidebar.markdown(f'<div class="model-status status-error">Medical VQA Model: ❌ Failed</div>', unsafe_allow_html=True)
         
-        if translator:
-            st.sidebar.markdown(f'<div class="model-status status-success">Translation Service: ✅ Ready</div>', unsafe_allow_html=True)
-        else:
-            st.sidebar.markdown(f'<div class="model-status status-error">Translation Service: ❌ Failed</div>', unsafe_allow_html=True)
+        st.sidebar.markdown(f'<div class="model-status status-success">Translation Service: ✅ Ready</div>', unsafe_allow_html=True)
         
-        if vqa_processor and vqa_model and translator:
+        if vqa_processor and vqa_model:
             # File upload
             uploaded_file = st.file_uploader("Choose a medical image...", 
                                            type=["jpg", "jpeg", "png", "bmp"],
@@ -287,7 +272,7 @@ def main():
                 col1, col2 = st.columns([1, 1])
                 
                 with col1:
-                    st.image(image, caption="Uploaded Medical Image", use_container_width=True)
+                    st.image(image, caption="Uploaded Medical Image", use_column_width=True)
                     st.info(f"Image size: {image.size[0]}x{image.size[1]} pixels")
                 
                 with col2:
@@ -361,7 +346,7 @@ def main():
                                 # Translate Arabic question to English for display
                                 with st.spinner("Translating question to English..."):
                                     display_question_en, success = translate_text(
-                                        question, "ar", "en", translator
+                                        question, "ar", "en"
                                     )
                                     if not success:
                                         display_question_en = question + " [Auto]"
@@ -375,7 +360,7 @@ def main():
                                 # Translate English question to Arabic for the model
                                 with st.spinner("Translating question to Arabic..."):
                                     model_question, success = translate_text(
-                                        question, "en", "ar", translator
+                                        question, "en", "ar"
                                     )
                                     if not success:
                                         model_question = question + " [Auto]"
@@ -388,7 +373,7 @@ def main():
                                 # Translate English question to Arabic for display and model
                                 with st.spinner("Translating question to Arabic..."):
                                     model_question, success = translate_text(
-                                        question, "en", "ar", translator
+                                        question, "en", "ar"
                                     )
                                     if not success:
                                         model_question = question + " [Auto]"
@@ -402,7 +387,7 @@ def main():
                                 # Translate Arabic question to English for display
                                 with st.spinner("Translating question to English..."):
                                     display_question_en, success = translate_text(
-                                        question, "ar", "en", translator
+                                        question, "ar", "en"
                                     )
                                     if not success:
                                         display_question_en = question + " [Auto]"
@@ -421,7 +406,7 @@ def main():
                             # Always translate the answer to English
                             with st.spinner("Translating answer to English..."):
                                 english_answer, success = translate_text(
-                                    arabic_answer, "ar", "en", translator
+                                    arabic_answer, "ar", "en"
                                 )
                                 if not success:
                                     english_answer = arabic_answer + " [Auto]"
@@ -472,13 +457,10 @@ def main():
                             st.warning("Please enter a question about the image.")
         else:
             st.markdown('<div class="error-box">', unsafe_allow_html=True)
-            st.error("**Initialization Error**: Some required components failed to load.")
-            
-            if not vqa_processor or not vqa_model:
-                st.write("- Medical VQA model failed to load")
-            if not translator:
-                st.write("- Translation service failed to initialize")
-            
+            st.error("**Model Loading Error**: The medical VQA model failed to load. This might be due to:")
+            st.write("- Insufficient memory resources")
+            st.write("- Network connectivity issues") 
+            st.write("- Model compatibility problems")
             st.write("\n**Please try refreshing the page or contact support.**")
             st.markdown('</div>', unsafe_allow_html=True)
     
@@ -499,7 +481,7 @@ def main():
         - **BLIP**: Vision-language model for image question answering
         - **PyTorch**: Deep learning framework
         - **Transformers**: Hugging Face model library
-        - **Googletrans**: Local translation service
+        - **Deep Translator**: Reliable translation service
         
         **📋 Supported:**
         - **Image Types**: X-rays, CT scans, MRIs, ultrasounds
@@ -511,7 +493,6 @@ def main():
         - **NOT a substitute** for professional medical diagnosis
         - Always consult qualified healthcare professionals
         - AI responses may contain errors or limitations
-        - Translations may be less accurate than professional services
         """)
         st.markdown('</div>', unsafe_allow_html=True)
         
@@ -526,7 +507,6 @@ def main():
             # Display model information
             st.subheader("🧠 AI Models Used")
             st.write("- Medical VQA: sharawy53/final_diploma_blip-med-rad-arabic")
-            st.write("- Translation: Googletrans (local)")
             
         except:
             st.write("- System information unavailable")
