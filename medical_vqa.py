@@ -94,6 +94,14 @@ st.markdown("""
         margin-top: 1rem;
         font-size: 0.9rem;
     }
+    .warning-badge {
+        background-color: #f59e0b;
+        color: white;
+        padding: 0.1rem 0.4rem;
+        border-radius: 0.25rem;
+        font-size: 0.7rem;
+        margin-left: 0.5rem;
+    }
 </style>
 """, unsafe_allow_html=True)
 
@@ -114,10 +122,10 @@ def is_arabic(text):
     arabic_pattern = re.compile(r'[\u0600-\u06FF\u0750-\u077F\u08A0-\u08FF]+')
     return bool(arabic_pattern.search(text))
 
-def translate_text(text, source_lang, target_lang):
+def translate_text(text, source_lang, target_lang, max_retries=3):
     """Translate text using external API (LibreTranslate) with robust error handling"""
     if not text.strip():
-        return text
+        return text, False  # Flag indicates if translation was successful
         
     try:
         # Use public LibreTranslate API
@@ -131,13 +139,28 @@ def translate_text(text, source_lang, target_lang):
         headers = {'Content-Type': 'application/json'}
         
         # Add retry mechanism
-        max_retries = 3
         for attempt in range(max_retries):
             try:
                 response = requests.post(url, data=json.dumps(payload, ensure_ascii=False), 
                                        headers=headers, timeout=10)
-                response.raise_for_status()
-                break
+                
+                # Handle API errors
+                if response.status_code != 200:
+                    error_msg = f"Translation API Error {response.status_code}: "
+                    if response.text:
+                        try:
+                            api_error = response.json()
+                            error_msg += api_error.get('error', response.text)
+                        except:
+                            error_msg += response.text
+                    else:
+                        error_msg += "No response body"
+                    raise Exception(error_msg)
+                
+                result = response.json()
+                translated_text = result.get('translatedText', text)
+                return translated_text, True  # Success
+            
             except requests.exceptions.RequestException as e:
                 if attempt < max_retries - 1:
                     wait_time = 2 ** attempt  # Exponential backoff
@@ -146,9 +169,6 @@ def translate_text(text, source_lang, target_lang):
                 else:
                     raise
         
-        result = response.json()
-        return result.get('translatedText', text)
-    
     except Exception as e:
         # Detailed error reporting
         error_details = f"**Translation Error Details:**\n"
@@ -174,7 +194,7 @@ def translate_text(text, source_lang, target_lang):
         st.write("4. Try again after a few seconds")
         st.markdown('</div>', unsafe_allow_html=True)
         
-        return text
+        return text, False  # Translation failed
 
 def analyze_medical_image(image, question, processor, model):
     """Analyze medical image with VQA"""
@@ -265,7 +285,7 @@ def main():
                 col1, col2 = st.columns([1, 1])
                 
                 with col1:
-                    st.image(image, caption="Uploaded Medical Image", use_container_width=True)
+                    st.image(image, caption="Uploaded Medical Image", use_column_width=True)
                     st.info(f"Image size: {image.size[0]}x{image.size[1]} pixels")
                 
                 with col2:
@@ -324,36 +344,75 @@ def main():
                     
                     if st.button("🔍 Analyze Image", type="primary", use_container_width=True):
                         if question:
-                            # Translate question to Arabic if needed (model requires Arabic)
+                            # Store original question
                             original_question = question
                             
-                            # If question is not in Arabic, translate to Arabic for the model
-                            if st.session_state.lang == 'en':
-                                with st.spinner("Translating question to Arabic..."):
-                                    question_ar = translate_text(question, "en", "ar")
-                                    # Fallback if translation fails
-                                    if question_ar == question:
-                                        question_ar = question + " [Auto]"
-                            else:
-                                question_ar = question
+                            # Determine if question is Arabic or English
+                            question_is_arabic = is_arabic(question)
                             
-                            # Add medical context
-                            contextualized_question = get_medical_context(question_ar)
+                            # Prepare variables for display
+                            display_question_en = ""
+                            display_question_ar = ""
+                            
+                            # Case 1: User interface is English but question is in Arabic
+                            if st.session_state.lang == 'en' and question_is_arabic:
+                                # Translate Arabic question to English for display
+                                with st.spinner("Translating question to English..."):
+                                    display_question_en, success = translate_text(question, "ar", "en")
+                                    if not success:
+                                        display_question_en = question + " [Auto]"
+                                
+                                # For model, we can use the original Arabic question
+                                model_question = question
+                                display_question_ar = question
+                            
+                            # Case 2: User interface is English and question is in English
+                            elif st.session_state.lang == 'en' and not question_is_arabic:
+                                # Translate English question to Arabic for the model
+                                with st.spinner("Translating question to Arabic..."):
+                                    model_question, success = translate_text(question, "en", "ar")
+                                    if not success:
+                                        model_question = question + " [Auto]"
+                                
+                                display_question_en = question
+                                display_question_ar = model_question
+                            
+                            # Case 3: User interface is Arabic but question is in English
+                            elif st.session_state.lang == 'ar' and not question_is_arabic:
+                                # Translate English question to Arabic for display and model
+                                with st.spinner("Translating question to Arabic..."):
+                                    model_question, success = translate_text(question, "en", "ar")
+                                    if not success:
+                                        model_question = question + " [Auto]"
+                                
+                                # For English display, we can use the original question
+                                display_question_en = question
+                                display_question_ar = model_question
+                            
+                            # Case 4: User interface is Arabic and question is in Arabic
+                            else:  # st.session_state.lang == 'ar' and question_is_arabic
+                                # Translate Arabic question to English for display
+                                with st.spinner("Translating question to English..."):
+                                    display_question_en, success = translate_text(question, "ar", "en")
+                                    if not success:
+                                        display_question_en = question + " [Auto]"
+                                
+                                model_question = question
+                                display_question_ar = question
+                            
+                            # Add medical context to the question that will be sent to the model
+                            contextualized_question = get_medical_context(model_question)
                             
                             # Analyze image
                             with st.spinner("Analyzing medical image..."):
                                 arabic_answer = analyze_medical_image(image, contextualized_question, 
                                                                      vqa_processor, vqa_model)
                             
-                            # Translate answer if needed
-                            if st.session_state.lang == 'en':
-                                with st.spinner("Translating answer to English..."):
-                                    english_answer = translate_text(arabic_answer, "ar", "en")
-                                    # Fallback if translation fails
-                                    if english_answer == arabic_answer:
-                                        english_answer = arabic_answer + " [Auto]"
-                            else:
-                                english_answer = arabic_answer
+                            # Always translate the answer to English
+                            with st.spinner("Translating answer to English..."):
+                                english_answer, success = translate_text(arabic_answer, "ar", "en")
+                                if not success:
+                                    english_answer = arabic_answer + " [Auto]"
                             
                             # Display results
                             st.markdown('<div class="result-box">', unsafe_allow_html=True)
@@ -364,13 +423,15 @@ def main():
                             <div class="translation-box">
                                 <div>
                                     <strong>Your Question:</strong> 
-                                    <span>{original_question}</span>
+                                    <span>{display_question_en}</span>
                                     <span class="language-badge english-badge">EN</span>
+                                    {"<span class='warning-badge'>Auto</span>" if "[Auto]" in display_question_en else ""}
                                 </div>
                                 <div style="margin-top: 0.5rem;">
                                     <strong>سؤالك:</strong> 
-                                    <span>{question_ar}</span>
+                                    <span>{display_question_ar}</span>
                                     <span class="language-badge arabic-badge">AR</span>
+                                    {"<span class='warning-badge'>Auto</span>" if "[Auto]" in display_question_ar else ""}
                                 </div>
                             </div>
                             """, unsafe_allow_html=True)
@@ -382,6 +443,7 @@ def main():
                                     <strong>Answer:</strong> 
                                     <span>{english_answer}</span>
                                     <span class="language-badge english-badge">EN</span>
+                                    {"<span class='warning-badge'>Auto</span>" if "[Auto]" in english_answer else ""}
                                 </div>
                                 <div style="margin-top: 0.5rem;">
                                     <strong>الإجابة:</strong> 
