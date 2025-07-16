@@ -19,8 +19,44 @@ st.set_page_config(
 # Custom CSS
 st.markdown("""
 <style>
-    /* ... (ابقاء الـ CSS السابق كما هو) ... */
-    
+    .main-header {
+        font-size: 2.5rem;
+        color: #1f2937;
+        text-align: center;
+        margin-bottom: 2rem;
+        font-weight: bold;
+    }
+    .feature-card {
+        background: #f8fafc;
+        padding: 1.5rem;
+        border-radius: 0.5rem;
+        border-left: 4px solid #3b82f6;
+        margin: 1rem 0;
+    }
+    .result-box {
+        background: #ecfdf5;
+        padding: 1rem;
+        border-radius: 0.5rem;
+        border: 1px solid #10b981;
+        margin-top: 1rem;
+    }
+    .translation-box {
+        background: #f0f9ff;
+        padding: 1rem;
+        border-radius: 0.5rem;
+        border: 1px solid #0ea5e9;
+        margin: 1rem 0;
+    }
+    .quick-questions {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.5rem;
+        margin-bottom: 1rem;
+    }
+    .quick-btn {
+        flex: 1;
+        min-width: 120px;
+    }
     .language-badge {
         padding: 0.25rem 0.5rem;
         border-radius: 0.25rem;
@@ -342,7 +378,52 @@ def main():
             st.markdown('</div>', unsafe_allow_html=True)
     
     elif app_mode == "About":
-        # ... (ابقاء قسم About كما هو) ...
+        st.markdown('<div class="feature-card">', unsafe_allow_html=True)
+        st.subheader("ℹ️ About Medical Vision AI Assistant")
+        st.write("""
+        This application combines advanced AI technologies to assist with medical image analysis and translation:
+        
+        **🔍 Features:**
+        - **Medical Image Analysis**: Upload medical images (X-rays, CT scans, MRIs) and ask questions
+        - **Bilingual Support**: Ask questions in English or Arabic, get answers in both languages
+        - **AI-Powered**: Uses state-of-the-art vision and language models
+        - **Medical Context**: Specialized for medical terminology and scenarios
+        
+        **🛠️ Technologies Used:**
+        - **Streamlit**: Web interface framework
+        - **BLIP**: Vision-language model for image question answering
+        - **Helsinki-NLP**: Neural machine translation for Arabic-English
+        - **PyTorch**: Deep learning framework
+        - **Transformers**: Hugging Face model library
+        
+        **📋 Supported:**
+        - **Image Types**: X-rays, CT scans, MRIs, ultrasounds
+        - **Formats**: JPG, PNG, BMP
+        - **Languages**: English and Arabic
+        
+        **⚠️ Important Disclaimers:**
+        - This tool is for **educational and research purposes only**
+        - **NOT a substitute** for professional medical diagnosis
+        - Always consult qualified healthcare professionals
+        - AI responses may contain errors or limitations
+        """)
+        st.markdown('</div>', unsafe_allow_html=True)
+        
+        # System info
+        st.subheader("🔧 System Information")
+        try:
+            import torch
+            st.write(f"- PyTorch Version: {torch.__version__}")
+            st.write(f"- Device: {'CUDA' if torch.cuda.is_available() else 'CPU'}")
+            st.write(f"- Streamlit Version: {st.__version__}")
+            
+            # Display model information
+            st.subheader("🧠 AI Models Used")
+            st.write("- Medical VQA: sharawy53/final_diploma_blip-med-rad-arabic")
+            st.write("- Translation: Helsinki-NLP/opus-mt models")
+            
+        except:
+            st.write("- System information unavailable")
     
     # Footer
     st.markdown("---")
