@@ -2,9 +2,6 @@ import streamlit as st
 import torch
 from transformers import AutoTokenizer, AutoModelForSeq2SeqLM, BlipProcessor, BlipForQuestionAnswering
 from PIL import Image
-import io
-import requests
-from sentence_transformers import SentenceTransformer
 
 # Configure page
 st.set_page_config(
@@ -50,7 +47,7 @@ st.markdown("""
 
 @st.cache_resource
 def load_medical_vqa_model():
-    """Load medical VQA model - using lighter BLIP model for better deployment"""
+    """Load medical VQA model"""
     try:
         model_name = "sharawy53/final_diploma_blip-med-rad-arabic"
         processor = BlipProcessor.from_pretrained(model_name)
@@ -62,12 +59,15 @@ def load_medical_vqa_model():
 
 @st.cache_resource
 def load_translator():
-    """Load Google Translator"""
+    """Load Arabic to English translation model"""
     try:
-        return Translator()
+        model_name = "Helsinki-NLP/opus-mt-ar-en"
+        tokenizer = AutoTokenizer.from_pretrained(model_name)
+        model = AutoModelForSeq2SeqLM.from_pretrained(model_name)
+        return tokenizer, model
     except Exception as e:
         st.error(f"Error loading translator: {str(e)}")
-        return None
+        return None, None
 
 def analyze_medical_image(image, question, processor, model):
     """Analyze medical image with VQA"""
@@ -106,7 +106,11 @@ def get_medical_context(question):
         "mri": "MRI medical imaging",
         "fracture": "bone fracture medical condition",
         "pneumonia": "lung infection medical condition",
-        "tumor": "abnormal growth medical condition"
+        "tumor": "abnormal growth medical condition",
+        "ultrasound": "ultrasound medical imaging",
+        "scan": "medical imaging scan",
+        "diagnosis": "medical diagnosis",
+        "symptom": "medical symptom"
     }
     
     for keyword, context in medical_keywords.items():
@@ -134,11 +138,11 @@ def main():
         st.markdown('</div>', unsafe_allow_html=True)
         
         # Load models with status display
-        with st.spinner("Loading AI models..."):
+        with st.spinner("Loading medical vision model..."):
             vqa_processor, vqa_model = load_medical_vqa_model()
         
         if vqa_processor and vqa_model:
-            st.sidebar.success("✅ VQA Model: Ready")
+            st.sidebar.success("✅ Medical VQA Model: Ready")
             
             # File upload
             uploaded_file = st.file_uploader("Choose a medical image...", 
@@ -190,17 +194,16 @@ def main():
                             st.subheader("🔍 Analysis Result:")
                             st.write(result)
                             
+                            # Language note
+                            st.caption("🌐 Note: Answers are in Arabic. Use the translation tab to convert to English.")
+                            
                             # Add confidence disclaimer
                             st.caption("⚠️ **Medical AI Disclaimer**: This analysis is for educational purposes only. Always consult healthcare professionals for medical decisions.")
                             st.markdown('</div>', unsafe_allow_html=True)
-                            
-                            # Allow follow-up questions
-                            if st.button("Ask Follow-up Question"):
-                                st.session_state.follow_up = True
                         else:
                             st.warning("Please enter a question about the image.")
         else:
-            st.sidebar.error("❌ VQA Model: Failed to load")
+            st.sidebar.error("❌ Medical VQA Model: Failed to load")
             st.markdown('<div class="error-box">', unsafe_allow_html=True)
             st.error("**Model Loading Error**: The medical VQA model failed to load. This might be due to:")
             st.write("- Insufficient memory resources")
@@ -254,7 +257,7 @@ def main():
                     st.write(f"**Arabic:** {arabic_text}")
                     
                     # Copy button simulation
-                    st.text_area("Copy translated text:", value=translated_text, height=60)
+                    st.text_area("Copy translated text:", value=translated_text, height=60, key="translated_text")
                     st.markdown('</div>', unsafe_allow_html=True)
                 else:
                     st.warning("Please enter Arabic text to translate.")
