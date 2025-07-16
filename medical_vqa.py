@@ -61,24 +61,13 @@ def load_medical_vqa_model():
         return None, None
 
 @st.cache_resource
-def _load_translation_models(self):
-        """Load translation models"""
-        try:
-            logger.info("Loading translation models...")
-            # Arabic to English translation
-            self.ar_en_tokenizer = MarianTokenizer.from_pretrained("Helsinki-NLP/opus-mt-ar-en")
-            self.ar_en_model = MarianMTModel.from_pretrained("Helsinki-NLP/opus-mt-ar-en").to(self.device)
-            
-            # English to Arabic translation
-            self.en_ar_tokenizer = MarianTokenizer.from_pretrained("Helsinki-NLP/opus-mt-en-ar")
-            self.en_ar_model = MarianMTModel.from_pretrained("Helsinki-NLP/opus-mt-en-ar").to(self.device)
-            
-            logger.info("Translation models loaded successfully")
-            self.translation_models_loaded = True
-            return True
-        except Exception as e:
-            logger.error(f"Translation model loading failed: {str(e)}")
-            return False
+def load_translator():
+    """Load Google Translator"""
+    try:
+        return Translator()
+    except Exception as e:
+        st.error(f"Error loading translator: {str(e)}")
+        return None
 
 def analyze_medical_image(image, question, processor, model):
     """Analyze medical image with VQA"""
@@ -228,7 +217,7 @@ def main():
         
         # Load translation model
         with st.spinner("Loading translation model..."):
-            translation_tokenizer, translation_model = _load_translation_models()
+            translation_tokenizer, translation_model = load_translator()
         
         if translation_tokenizer and translation_model:
             st.sidebar.success("✅ Translation Model: Ready")
