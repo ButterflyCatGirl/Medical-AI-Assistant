@@ -1,7 +1,7 @@
 import streamlit as st
 import torch
 from transformers import BlipProcessor, BlipForQuestionAnswering
-from transformers import BertTokenizer, BertForSequenceClassification
+from transformers import MarianTokenizer, MarianMTModel
 from PIL import Image
 import re
 import warnings
@@ -109,14 +109,24 @@ def load_medical_vqa_model():
 def load_translation_model():
     """Load translation model without SentencePiece dependency"""
     try:
-        # Using a model that doesn't require SentencePiece
-        model_name = "Helsinki-NLP/opus-mt-en-ar"
-        tokenizer = BertTokenizer.from_pretrained(model_name)
-        model = BertForSequenceClassification.from_pretrained(model_name)
-        return tokenizer, model
+        # Using MarianMT models with explicit tokenizer/model pairs
+        # English to Arabic model
+        en_ar_tokenizer = MarianTokenizer.from_pretrained("Helsinki-NLP/opus-mt-en-ar")
+        en_ar_model = MarianMTModel.from_pretrained("Helsinki-NLP/opus-mt-en-ar")
+        
+        # Arabic to English model
+        ar_en_tokenizer = MarianTokenizer.from_pretrained("Helsinki-NLP/opus-mt-ar-en")
+        ar_en_model = MarianMTModel.from_pretrained("Helsinki-NLP/opus-mt-ar-en")
+        
+        return {
+            'en_ar_tokenizer': en_ar_tokenizer,
+            'en_ar_model': en_ar_model,
+            'ar_en_tokenizer': ar_en_tokenizer,
+            'ar_en_model': ar_en_model
+        }
     except Exception as e:
         st.error(f"Error loading translation model: {str(e)}")
-        return None, None
+        return None
 
 def is_arabic(text):
     """Check if text contains Arabic characters"""
@@ -128,18 +138,18 @@ def translate_text(text, translation_models, max_length=128):
     if not text.strip():
         return ""
     
-    tokenizer, model = translation_models
-    
     try:
         if is_arabic(text):
             # Arabic to English translation
-            input_text = f"translate Arabic to English: {text}"
+            tokenizer = translation_models['ar_en_tokenizer']
+            model = translation_models['ar_en_model']
         else:
             # English to Arabic translation
-            input_text = f"translate English to Arabic: {text}"
+            tokenizer = translation_models['en_ar_tokenizer']
+            model = translation_models['en_ar_model']
         
         inputs = tokenizer(
-            input_text,
+            text,
             return_tensors="pt", 
             padding=True,
             truncation=True,
@@ -147,16 +157,19 @@ def translate_text(text, translation_models, max_length=128):
         )
         
         with torch.no_grad():
-            outputs = model(**inputs)
-            logits = outputs.logits
-            predicted_label = torch.argmax(logits, dim=1).item()
+            generated_ids = model.generate(
+                **inputs,
+                max_length=max_length,
+                num_beams=4,
+                early_stopping=True
+            )
         
-        # This is a simplified approach - in a real scenario we'd use a proper translation model
-        # For demonstration purposes, we'll return a placeholder translation
-        if is_arabic(text):
-            return f"Translated to English: {text[:30]}..."
-        else:
-            return f"تم الترجمة إلى العربية: {text[:30]}..."
+        translated = tokenizer.batch_decode(
+            generated_ids, 
+            skip_special_tokens=True
+        )[0]
+        
+        return translated
     except Exception as e:
         return f"Translation error: {str(e)}"
 
@@ -244,7 +257,7 @@ def main():
         for name, status, css_class in model_status:
             st.sidebar.markdown(f'<div class="model-status {css_class}">{name}: {status}</div>', unsafe_allow_html=True)
         
-        if vqa_processor and vqa_model:
+        if vqa_processor and vqa_model and translation_models:
             # File upload
             uploaded_file = st.file_uploader("Choose a medical image...", 
                                            type=["jpg", "jpeg", "png", "bmp"],
@@ -315,28 +328,25 @@ def main():
                     
                     if st.button("🔍 Analyze Image", type="primary", use_container_width=True):
                         if question:
-                            # For demo purposes, we'll use a placeholder for translation
+                            # Translate question to Arabic if needed (model requires Arabic)
                             original_question = question
                             
-                            # If question is in English, we'll "translate" it to Arabic for the model
+                            # If question is in English, translate to Arabic for the model
                             if not is_arabic(question):
-                                translated_question = f"Translated: {question}"
-                            else:
-                                translated_question = question
+                                with st.spinner("Translating question to Arabic..."):
+                                    question = translate_text(question, translation_models)
                             
                             # Add medical context
-                            contextualized_question = get_medical_context(translated_question)
+                            contextualized_question = get_medical_context(question)
                             
                             # Analyze image
                             with st.spinner("Analyzing medical image..."):
                                 arabic_answer = analyze_medical_image(image, contextualized_question, 
                                                                      vqa_processor, vqa_model)
                             
-                            # For demo purposes, we'll create a placeholder English translation
-                            if is_arabic(arabic_answer):
-                                english_answer = f"Translated: {arabic_answer[:50]}..."
-                            else:
-                                english_answer = arabic_answer
+                            # Translate answer to English
+                            with st.spinner("Translating answer to English..."):
+                                english_answer = translate_text(arabic_answer, translation_models)
                             
                             # Display results
                             st.markdown('<div class="result-box">', unsafe_allow_html=True)
@@ -352,7 +362,7 @@ def main():
                                 </div>
                                 <div style="margin-top: 0.5rem;">
                                     <strong>سؤالك:</strong> 
-                                    <span>{translated_question}</span>
+                                    <span>{question}</span>
                                     <span class="language-badge arabic-badge">AR</span>
                                 </div>
                             </div>
@@ -381,7 +391,7 @@ def main():
                             st.warning("Please enter a question about the image.")
         else:
             st.markdown('<div class="error-box">', unsafe_allow_html=True)
-            st.error("**Model Loading Error**: The medical VQA model failed to load. This might be due to:")
+            st.error("**Model Loading Error**: Some models failed to load. This might be due to:")
             st.write("- Insufficient memory resources")
             st.write("- Network connectivity issues") 
             st.write("- Model compatibility problems")
@@ -392,34 +402,31 @@ def main():
         st.markdown('<div class="feature-card">', unsafe_allow_html=True)
         st.subheader("ℹ️ About Medical Vision AI Assistant")
         st.write("""
-        This application combines advanced AI technologies to assist with medical image analysis:
+        This application combines advanced AI technologies to assist with medical image analysis and translation:
         
         **🔍 Features:**
         - **Medical Image Analysis**: Upload medical images (X-rays, CT scans, MRIs) and ask questions
-        - **Bilingual Interface**: Ask questions in English or Arabic
-        - **AI-Powered**: Uses state-of-the-art vision models
+        - **Bilingual Support**: Ask questions in English or Arabic, get answers in both languages
+        - **AI-Powered**: Uses state-of-the-art vision and language models
         - **Medical Context**: Specialized for medical terminology and scenarios
         
         **🛠️ Technologies Used:**
         - **Streamlit**: Web interface framework
         - **BLIP**: Vision-language model for image question answering
+        - **MarianMT**: Neural machine translation for Arabic-English
         - **PyTorch**: Deep learning framework
         - **Transformers**: Hugging Face model library
         
         **📋 Supported:**
         - **Image Types**: X-rays, CT scans, MRIs, ultrasounds
         - **Formats**: JPG, PNG, BMP
-        - **Languages**: English and Arabic interface
+        - **Languages**: English and Arabic
         
         **⚠️ Important Disclaimers:**
         - This tool is for **educational and research purposes only**
         - **NOT a substitute** for professional medical diagnosis
         - Always consult qualified healthcare professionals
         - AI responses may contain errors or limitations
-        
-        **Note on Translation**: 
-        The translation functionality is currently in demo mode. For production use, 
-        a dedicated translation service would be integrated.
         """)
         st.markdown('</div>', unsafe_allow_html=True)
         
@@ -434,6 +441,7 @@ def main():
             # Display model information
             st.subheader("🧠 AI Models Used")
             st.write("- Medical VQA: sharawy53/final_diploma_blip-med-rad-arabic")
+            st.write("- Translation: Helsinki-NLP MarianMT models")
             
         except:
             st.write("- System information unavailable")
