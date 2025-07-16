@@ -6,6 +6,7 @@ import re
 import requests
 import json
 import time
+import os
 
 # Configure page
 st.set_page_config(
@@ -102,6 +103,14 @@ st.markdown("""
         font-size: 0.7rem;
         margin-left: 0.5rem;
     }
+    .api-key-info {
+        background-color: #dbeafe;
+        padding: 0.75rem;
+        border-radius: 0.5rem;
+        border-left: 4px solid #3b82f6;
+        margin: 1rem 0;
+        font-size: 0.9rem;
+    }
 </style>
 """, unsafe_allow_html=True)
 
@@ -122,8 +131,8 @@ def is_arabic(text):
     arabic_pattern = re.compile(r'[\u0600-\u06FF\u0750-\u077F\u08A0-\u08FF]+')
     return bool(arabic_pattern.search(text))
 
-def translate_text(text, source_lang, target_lang, max_retries=3):
-    """Translate text using external API (LibreTranslate) with robust error handling"""
+def translate_text(text, source_lang, target_lang, api_key=None, max_retries=3):
+    """Translate text using LibreTranslate API with API key support"""
     if not text.strip():
         return text, False  # Flag indicates if translation was successful
         
@@ -136,6 +145,11 @@ def translate_text(text, source_lang, target_lang, max_retries=3):
             'target': target_lang,
             'format': 'text'
         }
+        
+        # Add API key if provided
+        if api_key:
+            payload['api_key'] = api_key
+            
         headers = {'Content-Type': 'application/json'}
         
         # Add retry mechanism
@@ -192,6 +206,7 @@ def translate_text(text, source_lang, target_lang, max_retries=3):
         st.write("2. Ensure text length is under 5000 characters")
         st.write("3. Check language codes (en for English, ar for Arabic)")
         st.write("4. Try again after a few seconds")
+        st.write("5. Make sure you have a valid LibreTranslate API key")
         st.markdown('</div>', unsafe_allow_html=True)
         
         return text, False  # Translation failed
@@ -241,6 +256,8 @@ def main():
         st.session_state.question = ''
     if 'lang' not in st.session_state:
         st.session_state.lang = 'en'  # Use ISO codes
+    if 'api_key' not in st.session_state:
+        st.session_state.api_key = ''
     
     # Header
     st.markdown('<h1 class="main-header">🏥 Medical Vision AI Assistant</h1>', unsafe_allow_html=True)
@@ -253,6 +270,25 @@ def main():
     # Add model status in sidebar
     st.sidebar.markdown("---")
     st.sidebar.subheader("🤖 AI Models Status")
+    
+    # Translation settings in sidebar
+    st.sidebar.markdown("---")
+    st.sidebar.subheader("🌐 Translation Settings")
+    
+    # API Key configuration
+    st.sidebar.markdown("""
+    <div class="api-key-info">
+        LibreTranslate now requires an API key for translation services.<br>
+        Get your free API key from:<br>
+        <a href="https://portal.libretranslate.com" target="_blank">https://portal.libretranslate.com</a>
+    </div>
+    """, unsafe_allow_html=True)
+    
+    api_key = st.sidebar.text_input("LibreTranslate API Key", 
+                                  value=st.session_state.get('api_key', ''),
+                                  type="password",
+                                  help="Enter your LibreTranslate API key")
+    st.session_state.api_key = api_key
     
     if app_mode == "Medical Image Analysis":
         st.markdown('<div class="feature-card">', unsafe_allow_html=True)
@@ -358,7 +394,9 @@ def main():
                             if st.session_state.lang == 'en' and question_is_arabic:
                                 # Translate Arabic question to English for display
                                 with st.spinner("Translating question to English..."):
-                                    display_question_en, success = translate_text(question, "ar", "en")
+                                    display_question_en, success = translate_text(
+                                        question, "ar", "en", st.session_state.api_key
+                                    )
                                     if not success:
                                         display_question_en = question + " [Auto]"
                                 
@@ -370,7 +408,9 @@ def main():
                             elif st.session_state.lang == 'en' and not question_is_arabic:
                                 # Translate English question to Arabic for the model
                                 with st.spinner("Translating question to Arabic..."):
-                                    model_question, success = translate_text(question, "en", "ar")
+                                    model_question, success = translate_text(
+                                        question, "en", "ar", st.session_state.api_key
+                                    )
                                     if not success:
                                         model_question = question + " [Auto]"
                                 
@@ -381,7 +421,9 @@ def main():
                             elif st.session_state.lang == 'ar' and not question_is_arabic:
                                 # Translate English question to Arabic for display and model
                                 with st.spinner("Translating question to Arabic..."):
-                                    model_question, success = translate_text(question, "en", "ar")
+                                    model_question, success = translate_text(
+                                        question, "en", "ar", st.session_state.api_key
+                                    )
                                     if not success:
                                         model_question = question + " [Auto]"
                                 
@@ -393,7 +435,9 @@ def main():
                             else:  # st.session_state.lang == 'ar' and question_is_arabic
                                 # Translate Arabic question to English for display
                                 with st.spinner("Translating question to English..."):
-                                    display_question_en, success = translate_text(question, "ar", "en")
+                                    display_question_en, success = translate_text(
+                                        question, "ar", "en", st.session_state.api_key
+                                    )
                                     if not success:
                                         display_question_en = question + " [Auto]"
                                 
@@ -410,7 +454,9 @@ def main():
                             
                             # Always translate the answer to English
                             with st.spinner("Translating answer to English..."):
-                                english_answer, success = translate_text(arabic_answer, "ar", "en")
+                                english_answer, success = translate_text(
+                                    arabic_answer, "ar", "en", st.session_state.api_key
+                                )
                                 if not success:
                                     english_answer = arabic_answer + " [Auto]"
                             
@@ -498,6 +544,7 @@ def main():
         
         **Note on Translation**: 
         The translation functionality uses LibreTranslate API for Arabic-English translation.
+        You'll need a free API key from https://portal.libretranslate.com.
         """)
         st.markdown('</div>', unsafe_allow_html=True)
         
