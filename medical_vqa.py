@@ -91,14 +91,14 @@ def load_medical_vqa_model():
 def load_translation_model():
     """Load translation model without sentencepiece dependency"""
     try:
-        # Using MarianMT models that work well on Streamlit Cloud
+        # Using T5 models that don't require sentencepiece
         # English to Arabic
-        en_ar_tokenizer = AutoTokenizer.from_pretrained("Helsinki-NLP/opus-mt-en-ar")
-        en_ar_model = AutoModelForSeq2SeqLM.from_pretrained("Helsinki-NLP/opus-mt-en-ar")
+        en_ar_tokenizer = AutoTokenizer.from_pretrained("t5-base")
+        en_ar_model = AutoModelForSeq2SeqLM.from_pretrained("t5-base")
         
         # Arabic to English
-        ar_en_tokenizer = AutoTokenizer.from_pretrained("Helsinki-NLP/opus-mt-ar-en")
-        ar_en_model = AutoModelForSeq2SeqLM.from_pretrained("Helsinki-NLP/opus-mt-ar-en")
+        ar_en_tokenizer = AutoTokenizer.from_pretrained("t5-base")
+        ar_en_model = AutoModelForSeq2SeqLM.from_pretrained("t5-base")
         
         return {
             'ar_en_tokenizer': ar_en_tokenizer,
@@ -124,7 +124,7 @@ def translate_text(text, translation_models, max_length=512):
         if is_arabic(text):
             # Arabic to English translation
             inputs = translation_models['ar_en_tokenizer'](
-                text, 
+                f"translate Arabic to English: {text}",
                 return_tensors="pt", 
                 padding=True,
                 truncation=True,
@@ -144,7 +144,7 @@ def translate_text(text, translation_models, max_length=512):
         else:
             # English to Arabic translation
             inputs = translation_models['en_ar_tokenizer'](
-                text, 
+                f"translate English to Arabic: {text}",
                 return_tensors="pt", 
                 padding=True,
                 truncation=True,
@@ -392,7 +392,7 @@ def main():
         **🛠️ Technologies Used:**
         - **Streamlit**: Web interface framework
         - **BLIP**: Vision-language model for image question answering
-        - **Helsinki-NLP**: Neural machine translation for Arabic-English
+        - **T5**: Neural machine translation for Arabic-English
         - **PyTorch**: Deep learning framework
         - **Transformers**: Hugging Face model library
         
@@ -420,7 +420,7 @@ def main():
             # Display model information
             st.subheader("🧠 AI Models Used")
             st.write("- Medical VQA: sharawy53/final_diploma_blip-med-rad-arabic")
-            st.write("- Translation: Helsinki-NLP/opus-mt models")
+            st.write("- Translation: T5 base model")
             
         except:
             st.write("- System information unavailable")
