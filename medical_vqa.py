@@ -3,10 +3,8 @@ import torch
 from transformers import BlipProcessor, BlipForQuestionAnswering
 from PIL import Image
 import re
-import requests
-import json
 import time
-import os
+from googletrans import Translator, LANGCODES
 
 # Configure page
 st.set_page_config(
@@ -103,7 +101,7 @@ st.markdown("""
         font-size: 0.7rem;
         margin-left: 0.5rem;
     }
-    .api-key-info {
+    .info-box {
         background-color: #dbeafe;
         padding: 0.75rem;
         border-radius: 0.5rem;
@@ -126,75 +124,45 @@ def load_medical_vqa_model():
         st.error(f"Error loading VQA model: {str(e)}")
         return None, None
 
+@st.cache_resource(show_spinner=False)
+def load_translator():
+    """Load translation model"""
+    try:
+        translator = Translator()
+        return translator
+    except Exception as e:
+        st.error(f"Error loading translator: {str(e)}")
+        return None
+
 def is_arabic(text):
     """Check if text contains Arabic characters"""
     arabic_pattern = re.compile(r'[\u0600-\u06FF\u0750-\u077F\u08A0-\u08FF]+')
     return bool(arabic_pattern.search(text))
 
-def translate_text(text, source_lang, target_lang, api_key=None, max_retries=3):
-    """Translate text using LibreTranslate API with API key support"""
+def translate_text(text, source_lang, target_lang, translator, max_retries=3):
+    """Translate text using googletrans library"""
     if not text.strip():
-        return text, False  # Flag indicates if translation was successful
+        return text, False
         
     try:
-        # Use public LibreTranslate API
-        url = "https://libretranslate.com/translate"
-        payload = {
-            'q': text,
-            'source': source_lang,
-            'target': target_lang,
-            'format': 'text'
-        }
-        
-        # Add API key if provided
-        if api_key:
-            payload['api_key'] = api_key
-            
-        headers = {'Content-Type': 'application/json'}
-        
         # Add retry mechanism
         for attempt in range(max_retries):
             try:
-                response = requests.post(url, data=json.dumps(payload, ensure_ascii=False), 
-                                       headers=headers, timeout=10)
-                
-                # Handle API errors
-                if response.status_code != 200:
-                    error_msg = f"Translation API Error {response.status_code}: "
-                    if response.text:
-                        try:
-                            api_error = response.json()
-                            error_msg += api_error.get('error', response.text)
-                        except:
-                            error_msg += response.text
-                    else:
-                        error_msg += "No response body"
-                    raise Exception(error_msg)
-                
-                result = response.json()
-                translated_text = result.get('translatedText', text)
-                return translated_text, True  # Success
-            
-            except requests.exceptions.RequestException as e:
+                result = translator.translate(text, src=source_lang, dest=target_lang)
+                return result.text, True
+            except Exception as e:
                 if attempt < max_retries - 1:
                     wait_time = 2 ** attempt  # Exponential backoff
                     time.sleep(wait_time)
                     continue
                 else:
                     raise
-        
+        return text, False
     except Exception as e:
         # Detailed error reporting
         error_details = f"**Translation Error Details:**\n"
         error_details += f"- **Error Type**: {type(e).__name__}\n"
-        
-        if hasattr(e, 'response') and e.response is not None:
-            error_details += f"- **Status Code**: {e.response.status_code}\n"
-            try:
-                api_error = e.response.json()
-                error_details += f"- **API Error**: {api_error.get('error', str(api_error))}\n"
-            except:
-                error_details += f"- **Response Text**: {e.response.text[:200]}...\n"
+        error_details += f"- **Message**: {str(e)}\n"
         
         st.markdown(f'<div class="error-details">', unsafe_allow_html=True)
         st.error(f"**Translation Error**: {str(e)}")
@@ -206,10 +174,9 @@ def translate_text(text, source_lang, target_lang, api_key=None, max_retries=3):
         st.write("2. Ensure text length is under 5000 characters")
         st.write("3. Check language codes (en for English, ar for Arabic)")
         st.write("4. Try again after a few seconds")
-        st.write("5. Make sure you have a valid LibreTranslate API key")
         st.markdown('</div>', unsafe_allow_html=True)
         
-        return text, False  # Translation failed
+        return text, False
 
 def analyze_medical_image(image, question, processor, model):
     """Analyze medical image with VQA"""
@@ -256,8 +223,6 @@ def main():
         st.session_state.question = ''
     if 'lang' not in st.session_state:
         st.session_state.lang = 'en'  # Use ISO codes
-    if 'api_key' not in st.session_state:
-        st.session_state.api_key = ''
     
     # Header
     st.markdown('<h1 class="main-header">🏥 Medical Vision AI Assistant</h1>', unsafe_allow_html=True)
@@ -271,24 +236,20 @@ def main():
     st.sidebar.markdown("---")
     st.sidebar.subheader("🤖 AI Models Status")
     
-    # Translation settings in sidebar
-    st.sidebar.markdown("---")
-    st.sidebar.subheader("🌐 Translation Settings")
+    # Load translator
+    with st.spinner("Loading translator..."):
+        translator = load_translator()
     
-    # API Key configuration
+    # Translation info
+    st.sidebar.markdown("---")
+    st.sidebar.subheader("🌐 Translation Info")
     st.sidebar.markdown("""
-    <div class="api-key-info">
-        LibreTranslate now requires an API key for translation services.<br>
-        Get your free API key from:<br>
-        <a href="https://portal.libretranslate.com" target="_blank">https://portal.libretranslate.com</a>
+    <div class="info-box">
+        Using local translation service (googletrans).<br>
+        No API key required.<br>
+        Translations may be less accurate than professional services.
     </div>
     """, unsafe_allow_html=True)
-    
-    api_key = st.sidebar.text_input("LibreTranslate API Key", 
-                                  value=st.session_state.get('api_key', ''),
-                                  type="password",
-                                  help="Enter your LibreTranslate API key")
-    st.session_state.api_key = api_key
     
     if app_mode == "Medical Image Analysis":
         st.markdown('<div class="feature-card">', unsafe_allow_html=True)
@@ -309,7 +270,12 @@ def main():
             model_status.append(('Medical VQA Model', '❌ Failed', 'status-error'))
             st.sidebar.markdown(f'<div class="model-status status-error">Medical VQA Model: ❌ Failed</div>', unsafe_allow_html=True)
         
-        if vqa_processor and vqa_model:
+        if translator:
+            st.sidebar.markdown(f'<div class="model-status status-success">Translation Service: ✅ Ready</div>', unsafe_allow_html=True)
+        else:
+            st.sidebar.markdown(f'<div class="model-status status-error">Translation Service: ❌ Failed</div>', unsafe_allow_html=True)
+        
+        if vqa_processor and vqa_model and translator:
             # File upload
             uploaded_file = st.file_uploader("Choose a medical image...", 
                                            type=["jpg", "jpeg", "png", "bmp"],
@@ -395,7 +361,7 @@ def main():
                                 # Translate Arabic question to English for display
                                 with st.spinner("Translating question to English..."):
                                     display_question_en, success = translate_text(
-                                        question, "ar", "en", st.session_state.api_key
+                                        question, "ar", "en", translator
                                     )
                                     if not success:
                                         display_question_en = question + " [Auto]"
@@ -409,7 +375,7 @@ def main():
                                 # Translate English question to Arabic for the model
                                 with st.spinner("Translating question to Arabic..."):
                                     model_question, success = translate_text(
-                                        question, "en", "ar", st.session_state.api_key
+                                        question, "en", "ar", translator
                                     )
                                     if not success:
                                         model_question = question + " [Auto]"
@@ -422,7 +388,7 @@ def main():
                                 # Translate English question to Arabic for display and model
                                 with st.spinner("Translating question to Arabic..."):
                                     model_question, success = translate_text(
-                                        question, "en", "ar", st.session_state.api_key
+                                        question, "en", "ar", translator
                                     )
                                     if not success:
                                         model_question = question + " [Auto]"
@@ -436,7 +402,7 @@ def main():
                                 # Translate Arabic question to English for display
                                 with st.spinner("Translating question to English..."):
                                     display_question_en, success = translate_text(
-                                        question, "ar", "en", st.session_state.api_key
+                                        question, "ar", "en", translator
                                     )
                                     if not success:
                                         display_question_en = question + " [Auto]"
@@ -455,7 +421,7 @@ def main():
                             # Always translate the answer to English
                             with st.spinner("Translating answer to English..."):
                                 english_answer, success = translate_text(
-                                    arabic_answer, "ar", "en", st.session_state.api_key
+                                    arabic_answer, "ar", "en", translator
                                 )
                                 if not success:
                                     english_answer = arabic_answer + " [Auto]"
@@ -506,10 +472,13 @@ def main():
                             st.warning("Please enter a question about the image.")
         else:
             st.markdown('<div class="error-box">', unsafe_allow_html=True)
-            st.error("**Model Loading Error**: The medical VQA model failed to load. This might be due to:")
-            st.write("- Insufficient memory resources")
-            st.write("- Network connectivity issues") 
-            st.write("- Model compatibility problems")
+            st.error("**Initialization Error**: Some required components failed to load.")
+            
+            if not vqa_processor or not vqa_model:
+                st.write("- Medical VQA model failed to load")
+            if not translator:
+                st.write("- Translation service failed to initialize")
+            
             st.write("\n**Please try refreshing the page or contact support.**")
             st.markdown('</div>', unsafe_allow_html=True)
     
@@ -530,6 +499,7 @@ def main():
         - **BLIP**: Vision-language model for image question answering
         - **PyTorch**: Deep learning framework
         - **Transformers**: Hugging Face model library
+        - **Googletrans**: Local translation service
         
         **📋 Supported:**
         - **Image Types**: X-rays, CT scans, MRIs, ultrasounds
@@ -541,10 +511,7 @@ def main():
         - **NOT a substitute** for professional medical diagnosis
         - Always consult qualified healthcare professionals
         - AI responses may contain errors or limitations
-        
-        **Note on Translation**: 
-        The translation functionality uses LibreTranslate API for Arabic-English translation.
-        You'll need a free API key from https://portal.libretranslate.com.
+        - Translations may be less accurate than professional services
         """)
         st.markdown('</div>', unsafe_allow_html=True)
         
@@ -559,6 +526,7 @@ def main():
             # Display model information
             st.subheader("🧠 AI Models Used")
             st.write("- Medical VQA: sharawy53/final_diploma_blip-med-rad-arabic")
+            st.write("- Translation: Googletrans (local)")
             
         except:
             st.write("- System information unavailable")
