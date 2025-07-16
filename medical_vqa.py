@@ -5,9 +5,11 @@ from transformers import T5Tokenizer, T5ForConditionalGeneration
 from PIL import Image
 import re
 import warnings
+import logging
 
-# تجاهل التحذيرات غير الضرورية
+# تعطيل التحذيرات غير الضرورية
 warnings.filterwarnings("ignore")
+logging.getLogger("transformers").setLevel(logging.ERROR)
 
 # Configure page
 st.set_page_config(
@@ -54,10 +56,6 @@ st.markdown("""
         gap: 0.5rem;
         margin-bottom: 1rem;
     }
-    .quick-btn {
-        flex: 1;
-        min-width: 120px;
-    }
     .language-badge {
         padding: 0.25rem 0.5rem;
         border-radius: 0.25rem;
@@ -78,29 +76,46 @@ st.markdown("""
         gap: 1rem;
         margin-bottom: 1rem;
     }
-    .radio-horizontal label {
-        margin-right: 1rem;
+    .model-status {
+        padding: 0.5rem;
+        border-radius: 0.25rem;
+        margin: 0.25rem 0;
+        font-size: 0.9rem;
+    }
+    .status-success {
+        background-color: #dcfce7;
+        color: #166534;
+    }
+    .status-error {
+        background-color: #fee2e2;
+        color: #b91c1c;
     }
 </style>
 """, unsafe_allow_html=True)
 
-@st.cache_resource
+@st.cache_resource(show_spinner=False)
 def load_medical_vqa_model():
-    """Load medical VQA model"""
+    """Load medical VQA model with fast processor"""
     try:
         model_name = "sharawy53/final_diploma_blip-med-rad-arabic"
-        processor = BlipProcessor.from_pretrained(model_name)
+        # استخدام معالج سريع إذا كان متاحًا
+        processor = BlipProcessor.from_pretrained(model_name, use_fast=True)
         model = BlipForQuestionAnswering.from_pretrained(model_name)
         return processor, model
     except Exception as e:
-        st.error(f"Error loading VQA model: {str(e)}")
-        return None, None
+        # إذا فشل المعالج السريع، حاول باستخدام المعالج الافتراضي
+        try:
+            processor = BlipProcessor.from_pretrained(model_name)
+            model = BlipForQuestionAnswering.from_pretrained(model_name)
+            return processor, model
+        except:
+            st.error(f"Error loading VQA model: {str(e)}")
+            return None, None
 
-@st.cache_resource
+@st.cache_resource(show_spinner=False)
 def load_translation_model():
-    """Load translation model without AutoTokenizer dependency"""
+    """Load translation model"""
     try:
-        # Using T5 tokenizer directly instead of AutoTokenizer
         tokenizer = T5Tokenizer.from_pretrained("t5-small")
         model = T5ForConditionalGeneration.from_pretrained("t5-small")
         return tokenizer, model
@@ -113,7 +128,7 @@ def is_arabic(text):
     arabic_pattern = re.compile(r'[\u0600-\u06FF\u0750-\u077F\u08A0-\u08FF]+')
     return bool(arabic_pattern.search(text))
 
-def translate_text(text, translation_models, max_length=512):
+def translate_text(text, translation_models, max_length=128):
     """Translate text between Arabic and English"""
     if not text.strip():
         return ""
@@ -222,18 +237,22 @@ def main():
             vqa_processor, vqa_model = load_medical_vqa_model()
             translation_models = load_translation_model()
         
-        model_status = ""
+        # Display model status
+        model_status = []
         if vqa_processor and vqa_model:
-            st.sidebar.success("✅ Medical VQA Model: Ready")
+            model_status.append(('Medical VQA Model', '✅ Ready', 'status-success'))
         else:
-            model_status += "❌ Medical VQA Model: Failed to load\n"
+            model_status.append(('Medical VQA Model', '❌ Failed', 'status-error'))
         
         if translation_models:
-            st.sidebar.success("✅ Translation Model: Ready")
+            model_status.append(('Translation Model', '✅ Ready', 'status-success'))
         else:
-            model_status += "❌ Translation Model: Failed to load\n"
+            model_status.append(('Translation Model', '❌ Failed', 'status-error'))
         
-        if not model_status:
+        for name, status, css_class in model_status:
+            st.sidebar.markdown(f'<div class="model-status {css_class}">{name}: {status}</div>', unsafe_allow_html=True)
+        
+        if vqa_processor and vqa_model and translation_models:
             # File upload
             uploaded_file = st.file_uploader("Choose a medical image...", 
                                            type=["jpg", "jpeg", "png", "bmp"],
@@ -310,7 +329,7 @@ def main():
                             # If question is in English, translate to Arabic for the model
                             if not is_arabic(question):
                                 with st.spinner("Translating question to Arabic..."):
-                                    question = translate_text(question, translation_models, max_length=128)
+                                    question = translate_text(question, translation_models)
                             
                             # Add medical context
                             contextualized_question = get_medical_context(question)
@@ -322,7 +341,7 @@ def main():
                             
                             # Translate answer to English
                             with st.spinner("Translating answer to English..."):
-                                english_answer = translate_text(arabic_answer, translation_models, max_length=128)
+                                english_answer = translate_text(arabic_answer, translation_models)
                             
                             # Display results
                             st.markdown('<div class="result-box">', unsafe_allow_html=True)
@@ -366,7 +385,6 @@ def main():
                         else:
                             st.warning("Please enter a question about the image.")
         else:
-            st.sidebar.error(model_status)
             st.markdown('<div class="error-box">', unsafe_allow_html=True)
             st.error("**Model Loading Error**: Some models failed to load. This might be due to:")
             st.write("- Insufficient memory resources")
