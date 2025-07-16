@@ -228,7 +228,7 @@ def main():
         
         # Load translation model
         with st.spinner("Loading translation model..."):
-            translation_tokenizer, translation_model = load_translation_model()
+            translation_tokenizer, translation_model = _load_translation_models()
         
         if translation_tokenizer and translation_model:
             st.sidebar.success("✅ Translation Model: Ready")
