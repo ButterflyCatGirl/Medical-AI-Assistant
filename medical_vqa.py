@@ -2,6 +2,7 @@ import streamlit as st
 import torch
 from transformers import AutoTokenizer, AutoModelForSeq2SeqLM, BlipProcessor, BlipForQuestionAnswering
 from PIL import Image
+import re
 
 # Configure page
 st.set_page_config(
@@ -35,12 +36,35 @@ st.markdown("""
         border: 1px solid #10b981;
         margin-top: 1rem;
     }
-    .error-box {
-        background: #fef2f2;
+    .translation-box {
+        background: #f0f9ff;
         padding: 1rem;
         border-radius: 0.5rem;
-        border: 1px solid #ef4444;
-        margin-top: 1rem;
+        border: 1px solid #0ea5e9;
+        margin: 1rem 0;
+    }
+    .quick-questions {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.5rem;
+        margin-bottom: 1rem;
+    }
+    .quick-btn {
+        flex: 1;
+        min-width: 120px;
+    }
+    .language-tabs {
+        display: flex;
+        margin-bottom: 1rem;
+    }
+    .lang-tab {
+        padding: 0.5rem 1rem;
+        cursor: pointer;
+        border-bottom: 2px solid transparent;
+    }
+    .lang-tab.active {
+        border-bottom: 2px solid #3b82f6;
+        font-weight: bold;
     }
 </style>
 """, unsafe_allow_html=True)
@@ -58,16 +82,67 @@ def load_medical_vqa_model():
         return None, None
 
 @st.cache_resource
-def load_translator():
-    """Load Arabic to English translation model"""
+def load_translation_model():
+    """Load translation model"""
     try:
+        # Using a more accurate medical translation model
         model_name = "Helsinki-NLP/opus-mt-ar-en"
-        tokenizer = AutoTokenizer.from_pretrained(model_name)
-        model = AutoModelForSeq2SeqLM.from_pretrained(model_name)
-        return tokenizer, model
+        ar_en_tokenizer = AutoTokenizer.from_pretrained(model_name)
+        ar_en_model = AutoModelForSeq2SeqLM.from_pretrained(model_name)
+        
+        # For English to Arabic
+        model_name_en_ar = "Helsinki-NLP/opus-mt-en-ar"
+        en_ar_tokenizer = AutoTokenizer.from_pretrained(model_name_en_ar)
+        en_ar_model = AutoModelForSeq2SeqLM.from_pretrained(model_name_en_ar)
+        
+        return {
+            'ar_en_tokenizer': ar_en_tokenizer,
+            'ar_en_model': ar_en_model,
+            'en_ar_tokenizer': en_ar_tokenizer,
+            'en_ar_model': en_ar_model
+        }
     except Exception as e:
-        st.error(f"Error loading translator: {str(e)}")
-        return None, None
+        st.error(f"Error loading translation model: {str(e)}")
+        return None
+
+def is_arabic(text):
+    """Check if text contains Arabic characters"""
+    arabic_pattern = re.compile(r'[\u0600-\u06FF\u0750-\u077F\u08A0-\u08FF]+')
+    return bool(arabic_pattern.search(text))
+
+def translate_text(text, translation_models):
+    """Translate text between Arabic and English"""
+    if not text.strip():
+        return ""
+    
+    try:
+        if is_arabic(text):
+            # Arabic to English translation
+            inputs = translation_models['ar_en_tokenizer'](text, return_tensors="pt", 
+                                                          padding=True, truncation=True, 
+                                                          max_length=512)
+            with torch.no_grad():
+                generated_ids = translation_models['ar_en_model'].generate(**inputs, 
+                                                                          max_length=128, 
+                                                                          num_beams=4, 
+                                                                          early_stopping=True)
+            translated = translation_models['ar_en_tokenizer'].decode(generated_ids[0], 
+                                                                     skip_special_tokens=True)
+        else:
+            # English to Arabic translation
+            inputs = translation_models['en_ar_tokenizer'](text, return_tensors="pt", 
+                                                          padding=True, truncation=True, 
+                                                          max_length=512)
+            with torch.no_grad():
+                generated_ids = translation_models['en_ar_model'].generate(**inputs, 
+                                                                          max_length=128, 
+                                                                          num_beams=4, 
+                                                                          early_stopping=True)
+            translated = translation_models['en_ar_tokenizer'].decode(generated_ids[0], 
+                                                                     skip_special_tokens=True)
+        return translated
+    except Exception as e:
+        return f"Translation error: {str(e)}"
 
 def analyze_medical_image(image, question, processor, model):
     """Analyze medical image with VQA"""
@@ -77,7 +152,7 @@ def analyze_medical_image(image, question, processor, model):
         
         # Generate response
         with torch.no_grad():
-            out = model.generate(**inputs, max_length=50, num_beams=5)
+            out = model.generate(**inputs, max_length=100, num_beams=5)
         
         # Decode response
         answer = processor.decode(out[0], skip_special_tokens=True)
@@ -85,28 +160,18 @@ def analyze_medical_image(image, question, processor, model):
     except Exception as e:
         return f"Error analyzing image: {str(e)}"
 
-def translate_arabic_to_english(text, tokenizer, model):
-    """Translate Arabic text to English"""
-    try:
-        inputs = tokenizer(text, return_tensors="pt", padding=True, truncation=True, max_length=512)
-        
-        with torch.no_grad():
-            generated_ids = model.generate(**inputs, max_length=128, num_beams=4, early_stopping=True)
-        
-        translated_text = tokenizer.decode(generated_ids[0], skip_special_tokens=True)
-        return translated_text
-    except Exception as e:
-        return f"Error translating text: {str(e)}"
-
 def get_medical_context(question):
     """Add medical context to questions"""
     medical_keywords = {
         "xray": "X-ray medical imaging",
+        "x-ray": "X-ray medical imaging",
         "ct": "CT scan medical imaging", 
         "mri": "MRI medical imaging",
         "fracture": "bone fracture medical condition",
         "pneumonia": "lung infection medical condition",
         "tumor": "abnormal growth medical condition",
+        "cancer": "cancerous growth medical condition",
+        "infection": "bacterial or viral infection",
         "ultrasound": "ultrasound medical imaging",
         "scan": "medical imaging scan",
         "diagnosis": "medical diagnosis",
@@ -119,13 +184,19 @@ def get_medical_context(question):
     return question
 
 def main():
+    # Initialize session state
+    if 'question' not in st.session_state:
+        st.session_state.question = ''
+    if 'lang' not in st.session_state:
+        st.session_state.lang = 'english'
+    
     # Header
     st.markdown('<h1 class="main-header">🏥 Medical Vision AI Assistant</h1>', unsafe_allow_html=True)
     
     # Sidebar
     st.sidebar.title("Navigation")
     app_mode = st.sidebar.selectbox("Choose the app mode", 
-                                   ["Medical Image Analysis", "Arabic Translation", "About"])
+                                   ["Medical Image Analysis", "About"])
     
     # Add model status in sidebar
     st.sidebar.markdown("---")
@@ -137,12 +208,14 @@ def main():
         st.write("Upload a medical image and ask questions about it using AI-powered visual question answering.")
         st.markdown('</div>', unsafe_allow_html=True)
         
-        # Load models with status display
-        with st.spinner("Loading medical vision model..."):
+        # Load models
+        with st.spinner("Loading medical AI models..."):
             vqa_processor, vqa_model = load_medical_vqa_model()
+            translation_models = load_translation_model()
         
-        if vqa_processor and vqa_model:
+        if vqa_processor and vqa_model and translation_models:
             st.sidebar.success("✅ Medical VQA Model: Ready")
+            st.sidebar.success("✅ Translation Model: Ready")
             
             # File upload
             uploaded_file = st.file_uploader("Choose a medical image...", 
@@ -155,47 +228,102 @@ def main():
                 col1, col2 = st.columns([1, 1])
                 
                 with col1:
-                    st.image(image, caption="Uploaded Medical Image", use_container_width=True)
+                    st.image(image, caption="Uploaded Medical Image", use_column_width=True)
                     st.info(f"Image size: {image.size[0]}x{image.size[1]} pixels")
                 
                 with col2:
-                    # Question input with examples
+                    # Language tabs
+                    st.markdown('<div class="language-tabs">', unsafe_allow_html=True)
+                    if st.button("English", key="en_btn"):
+                        st.session_state.lang = 'english'
+                    if st.button("العربية", key="ar_btn"):
+                        st.session_state.lang = 'arabic'
+                    st.markdown('</div>', unsafe_allow_html=True)
+                    
+                    # Question input
                     st.subheader("Ask a Medical Question")
                     
-                    # Quick question buttons
-                    st.write("**Quick Questions:**")
-                    col_q1, col_q2 = st.columns(2)
-                    with col_q1:
-                        if st.button("What do you see?"):
-                            st.session_state.question = "What abnormalities or findings do you see in this medical image?"
-                        if st.button("Any fractures?"):
-                            st.session_state.question = "Are there any fractures or broken bones visible?"
-                    with col_q2:
-                        if st.button("Normal or abnormal?"):
-                            st.session_state.question = "Does this medical image appear normal or abnormal?"
-                        if st.button("Describe findings"):
-                            st.session_state.question = "Describe the key medical findings in this image"
+                    # Suggested questions
+                    st.write("**Suggested Questions:**")
+                    
+                    # English questions
+                    en_questions = [
+                        "What abnormalities do you see?",
+                        "Are there any fractures?",
+                        "Is this result normal or abnormal?",
+                        "Describe the key findings",
+                        "Any signs of infection?"
+                    ]
+                    
+                    # Arabic questions
+                    ar_questions = [
+                        "ما هي التشوهات التي تراها؟",
+                        "هل هناك أي كسور؟",
+                        "هل هذه النتيجة طبيعية أم غير طبيعية؟",
+                        "صف النتائج الرئيسية",
+                        "هل هناك أي علامات للعدوى؟"
+                    ]
+                    
+                    # Display suggested questions based on selected language
+                    st.markdown('<div class="quick-questions">', unsafe_allow_html=True)
+                    
+                    if st.session_state.lang == 'english':
+                        for q in en_questions:
+                            if st.button(q, key=f"en_q_{q}", use_container_width=True, 
+                                        help="Click to use this question"):
+                                st.session_state.question = q
+                    else:
+                        for q in ar_questions:
+                            if st.button(q, key=f"ar_q_{q}", use_container_width=True,
+                                        help="انقر لاستخدام هذا السؤال"):
+                                st.session_state.question = q
+                    
+                    st.markdown('</div>', unsafe_allow_html=True)
                     
                     # Custom question input
-                    question = st.text_area("Or ask your own question:", 
+                    placeholder = "What abnormalities do you see?" if st.session_state.lang == 'english' else "ما هي التشوهات التي تراها؟"
+                    question = st.text_area("Your question:", 
                                            value=st.session_state.get('question', ''),
-                                           placeholder="What abnormalities do you see in this X-ray?",
+                                           placeholder=placeholder,
                                            height=100)
                     
                     if st.button("🔍 Analyze Image", type="primary"):
                         if question:
+                            # Translate question to Arabic if needed (model requires Arabic)
+                            original_question = question
+                            
+                            # If question is in English, translate to Arabic for the model
+                            if not is_arabic(question):
+                                with st.spinner("Translating question to Arabic..."):
+                                    question = translate_text(question, translation_models)
+                            
                             # Add medical context
                             contextualized_question = get_medical_context(question)
                             
+                            # Analyze image
                             with st.spinner("Analyzing medical image..."):
-                                result = analyze_medical_image(image, contextualized_question, vqa_processor, vqa_model)
+                                arabic_answer = analyze_medical_image(image, contextualized_question, 
+                                                                     vqa_processor, vqa_model)
                             
+                            # Translate answer to English
+                            with st.spinner("Translating answer to English..."):
+                                english_answer = translate_text(arabic_answer, translation_models)
+                            
+                            # Display results
                             st.markdown('<div class="result-box">', unsafe_allow_html=True)
-                            st.subheader("🔍 Analysis Result:")
-                            st.write(result)
+                            st.subheader("🔍 Analysis Result")
                             
-                            # Language note
-                            st.caption("🌐 Note: Answers are in Arabic. Use the translation tab to convert to English.")
+                            # Display question in both languages
+                            st.markdown('<div class="translation-box">', unsafe_allow_html=True)
+                            st.write(f"**Your Question (English):** {original_question if not is_arabic(original_question) else translate_text(original_question, translation_models)}")
+                            st.write(f"**سؤالك (العربية):** {question if is_arabic(question) else translate_text(question, translation_models)}")
+                            st.markdown('</div>', unsafe_allow_html=True)
+                            
+                            # Display answer in both languages
+                            st.markdown('<div class="translation-box">', unsafe_allow_html=True)
+                            st.write(f"**Answer (English):** {english_answer}")
+                            st.write(f"**الإجابة (العربية):** {arabic_answer}")
+                            st.markdown('</div>', unsafe_allow_html=True)
                             
                             # Add confidence disclaimer
                             st.caption("⚠️ **Medical AI Disclaimer**: This analysis is for educational purposes only. Always consult healthcare professionals for medical decisions.")
@@ -203,79 +331,24 @@ def main():
                         else:
                             st.warning("Please enter a question about the image.")
         else:
-            st.sidebar.error("❌ Medical VQA Model: Failed to load")
+            st.sidebar.error("❌ Models failed to load")
             st.markdown('<div class="error-box">', unsafe_allow_html=True)
-            st.error("**Model Loading Error**: The medical VQA model failed to load. This might be due to:")
+            st.error("**Model Loading Error**: Some models failed to load. This might be due to:")
             st.write("- Insufficient memory resources")
             st.write("- Network connectivity issues") 
             st.write("- Model compatibility problems")
             st.write("\n**Please try refreshing the page or contact support.**")
             st.markdown('</div>', unsafe_allow_html=True)
     
-    elif app_mode == "Arabic Translation":
-        st.markdown('<div class="feature-card">', unsafe_allow_html=True)
-        st.subheader("🌐 Arabic to English Medical Translation")
-        st.write("Translate Arabic medical text to English using specialized AI models.")
-        st.markdown('</div>', unsafe_allow_html=True)
-        
-        # Load translation model
-        with st.spinner("Loading translation model..."):
-            translation_tokenizer, translation_model = load_translator()
-        
-        if translation_tokenizer and translation_model:
-            st.sidebar.success("✅ Translation Model: Ready")
-            
-            # Example texts
-            st.subheader("Example Medical Texts")
-            col1, col2, col3 = st.columns(3)
-            with col1:
-                if st.button("Headache"):
-                    st.session_state.arabic_text = "أعاني من صداع شديد"
-            with col2:
-                if st.button("Chest Pain"):
-                    st.session_state.arabic_text = "أشعر بألم في الصدر"
-            with col3:
-                if st.button("Fever"):
-                    st.session_state.arabic_text = "لدي حمى وارتفاع في درجة الحرارة"
-            
-            arabic_text = st.text_area("Enter Arabic medical text:", 
-                                     value=st.session_state.get('arabic_text', ''),
-                                     placeholder="أدخل النص الطبي العربي هنا...",
-                                     height=150,
-                                     help="Enter Arabic text related to medical symptoms, conditions, or questions")
-            
-            if st.button("🔄 Translate", type="primary"):
-                if arabic_text.strip():
-                    with st.spinner("Translating Arabic to English..."):
-                        translated_text = translate_arabic_to_english(arabic_text, 
-                                                                    translation_tokenizer, 
-                                                                    translation_model)
-                    
-                    st.markdown('<div class="result-box">', unsafe_allow_html=True)
-                    st.subheader("📝 Translation Result:")
-                    st.write(f"**English:** {translated_text}")
-                    st.write(f"**Arabic:** {arabic_text}")
-                    
-                    # Copy button simulation
-                    st.text_area("Copy translated text:", value=translated_text, height=60, key="translated_text")
-                    st.markdown('</div>', unsafe_allow_html=True)
-                else:
-                    st.warning("Please enter Arabic text to translate.")
-        else:
-            st.sidebar.error("❌ Translation Model: Failed to load")
-            st.markdown('<div class="error-box">', unsafe_allow_html=True)
-            st.error("**Translation Model Error**: Failed to load the Arabic-English translation model.")
-            st.markdown('</div>', unsafe_allow_html=True)
-    
     elif app_mode == "About":
         st.markdown('<div class="feature-card">', unsafe_allow_html=True)
         st.subheader("ℹ️ About Medical Vision AI Assistant")
         st.write("""
-        This application combines advanced AI technologies to assist with medical image analysis and translation:
+        This application combines advanced AI technologies to assist with medical image analysis:
         
         **🔍 Features:**
         - **Medical Image Analysis**: Upload medical images (X-rays, CT scans, MRIs) and ask questions
-        - **Arabic Translation**: Translate Arabic medical text to English
+        - **Bilingual Support**: Ask questions in English or Arabic, get answers in both languages
         - **AI-Powered**: Uses state-of-the-art vision and language models
         - **Medical Context**: Specialized for medical terminology and scenarios
         
@@ -289,8 +362,7 @@ def main():
         **📋 Supported:**
         - **Image Types**: X-rays, CT scans, MRIs, ultrasounds
         - **Formats**: JPG, PNG, BMP
-        - **Languages**: Arabic ↔ English translation
-        - **Medical Domains**: Radiology, general medicine, symptoms
+        - **Languages**: English and Arabic
         
         **⚠️ Important Disclaimers:**
         - This tool is for **educational and research purposes only**
@@ -307,6 +379,12 @@ def main():
             st.write(f"- PyTorch Version: {torch.__version__}")
             st.write(f"- Device: {'CUDA' if torch.cuda.is_available() else 'CPU'}")
             st.write(f"- Streamlit Version: {st.__version__}")
+            
+            # Display model information
+            st.subheader("🧠 AI Models Used")
+            st.write("- Medical VQA: sharawy53/final_diploma_blip-med-rad-arabic")
+            st.write("- Translation: Helsinki-NLP/opus-mt models")
+            
         except:
             st.write("- System information unavailable")
     
