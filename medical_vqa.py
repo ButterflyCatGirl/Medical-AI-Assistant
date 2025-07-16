@@ -18,29 +18,36 @@ st.set_page_config(
 st.markdown("""
 <style>
     .main-header {
-        background: linear-gradient(90deg, #3b82f6 0%, #1e40af 100%);
-        padding: 2rem;
-        border-radius: 10px;
-        color: white;
+        font-size: 2.5rem;
+        color: #1f2937;
         text-align: center;
         margin-bottom: 2rem;
+        font-weight: bold;
     }
     .feature-card {
         background: #f8fafc;
         padding: 1.5rem;
-        border-radius: 10px;
-        border: 1px solid #e2e8f0;
-        margin: 1rem 0;
-    }
-    .result-box {
-        background: #f0f9ff;
-        padding: 1rem;
-        border-radius: 8px;
+        border-radius: 0.5rem;
         border-left: 4px solid #3b82f6;
         margin: 1rem 0;
     }
+    .result-box {
+        background: #ecfdf5;
+        padding: 1rem;
+        border-radius: 0.5rem;
+        border: 1px solid #10b981;
+        margin-top: 1rem;
+    }
+    .error-box {
+        background: #fef2f2;
+        padding: 1rem;
+        border-radius: 0.5rem;
+        border: 1px solid #ef4444;
+        margin-top: 1rem;
+    }
 </style>
 """, unsafe_allow_html=True)
+
 
 @st.cache_resource
 def load_medical_vqa_model():
