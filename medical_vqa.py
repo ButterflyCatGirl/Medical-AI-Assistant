@@ -188,6 +188,25 @@ st.markdown("""
         .content-container {
             padding: 0 0.5rem;
         }
+        
+        .main-columns {
+            flex-direction: column;
+        }
+    }
+    
+    /* Two-column layout */
+    .main-columns {
+        display: flex;
+        gap: 1.5rem;
+        margin-top: 1rem;
+    }
+    
+    .left-column {
+        flex: 4;
+    }
+    
+    .right-column {
+        flex: 6;
     }
 </style>
 """, unsafe_allow_html=True)
@@ -313,187 +332,189 @@ def main():
             vqa_processor, vqa_model = load_medical_vqa_model()
         
         if vqa_processor and vqa_model:
-            # Image Upload Section
-            st.markdown('''
-            <div class="image-section">
-                <h3>📤 Upload Medical Image</h3>
-            </div>
-            ''', unsafe_allow_html=True)
+            # Create two main columns
+            col1, col2 = st.columns([4, 6], gap="large")
             
-            uploaded_file = st.file_uploader(
-                "Choose a medical image...", 
-                type=["jpg", "jpeg", "png", "bmp"],
-                label_visibility="collapsed"
-            )
-            
-            image_col, info_col = st.columns([2, 1])
-            
-            with image_col:
+            with col1:
+                # Image Upload Section
+                st.markdown('''
+                <div class="image-section">
+                    <h3>📤 Upload Medical Image</h3>
+                </div>
+                ''', unsafe_allow_html=True)
+                
+                uploaded_file = st.file_uploader(
+                    "Choose a medical image...", 
+                    type=["jpg", "jpeg", "png", "bmp"],
+                    label_visibility="collapsed"
+                )
+                
                 if uploaded_file is not None:
                     image = Image.open(uploaded_file).convert("RGB")
                     st.image(image, caption="Medical Image for Analysis", use_container_width=True)
-            
-            with info_col:
-                if uploaded_file is not None:
+                    
+                    # Image info
                     st.markdown(f'''
-                    <div style="margin-top: 1rem;">
+                    <div class="image-section">
+                        <h3>📊 Image Information</h3>
                         <p><strong>📏 Dimensions:</strong> {image.size[0]} x {image.size[1]} pixels</p>
                         <p><strong>📁 Size:</strong> {round(uploaded_file.size / 1024, 1)} KB</p>
                         <p><strong>🎨 Format:</strong> {uploaded_file.type}</p>
                     </div>
                     ''', unsafe_allow_html=True)
             
-            # Analysis Section
-            st.markdown('''
-            <div class="analysis-section">
-                <h3>❓ Ask Medical Questions</h3>
-            </div>
-            ''', unsafe_allow_html=True)
-            
-            # Language Selection
-            lang = st.radio(
-                "Language:", 
-                ["🇺🇸 English", "🇸🇦 العربية"],
-                horizontal=True,
-                index=0 if st.session_state.lang == 'en' else 1,
-                key="lang_selector"
-            )
-            
-            st.session_state.lang = 'en' if lang == "🇺🇸 English" else 'ar'
-            
-            # Suggested Questions
-            questions = {
-                "en": [
-                    "What abnormalities do you see?",
-                    "Are there any fractures visible?",
-                    "Is this result normal or abnormal?",
-                    "Describe the key medical findings",
-                    "Any signs of infection present?",
-                    "Is there a tumor or mass visible?",
-                    "What is your diagnostic assessment?"
-                ],
-                "ar": [
-                    "ما هي التشوهات التي تراها؟",
-                    "هل هناك أي كسور مرئية؟",
-                    "هل هذه النتيجة طبيعية أم غير طبيعية؟",
-                    "صف النتائج الطبية الرئيسية",
-                    "هل هناك أي علامات للعدوى؟",
-                    "هل هناك ورم أو كتلة مرئية؟",
-                    "ما هو تقييمك التشخيصي؟"
-                ]
-            }
-            
-            st.markdown('<div class="quick-questions">', unsafe_allow_html=True)
-            for i, q in enumerate(questions[st.session_state.lang]):
-                if st.button(q, key=f"q_{i}_{st.session_state.lang}"):
-                    st.session_state.question = q
-            st.markdown('</div>', unsafe_allow_html=True)
-            
-            # Custom Question
-            placeholder = "Type your medical question here..." if st.session_state.lang == 'en' else "اكتب سؤالك الطبي هنا..."
-            question = st.text_area(
-                "Your Question:", 
-                value=st.session_state.get('question', ''),
-                placeholder=placeholder,
-                height=100,
-                label_visibility="collapsed"
-            )
-            
-            # Analyze Button
-            if st.button("🔬 Analyze Medical Image", type="primary", use_container_width=True):
-                if uploaded_file is None:
-                    st.warning("Please upload a medical image first")
-                elif not question:
-                    st.warning("Please enter a question about the medical image")
-                else:
-                    # Translate question if needed
-                    question_is_arabic = is_arabic(question)
-                    
-                    if st.session_state.lang == 'en' and question_is_arabic:
-                        display_question_en, _ = translate_text(question, "ar", "en")
-                        model_question = question
-                        display_question_ar = question
-                    elif st.session_state.lang == 'en' and not question_is_arabic:
-                        model_question, _ = translate_text(question, "en", "ar")
-                        display_question_en = question
-                        display_question_ar = model_question
-                    elif st.session_state.lang == 'ar' and not question_is_arabic:
-                        model_question, _ = translate_text(question, "en", "ar")
-                        display_question_en = question
-                        display_question_ar = model_question
+            with col2:
+                # Analysis Section
+                st.markdown('''
+                <div class="analysis-section">
+                    <h3>❓ Ask Medical Questions</h3>
+                </div>
+                ''', unsafe_allow_html=True)
+                
+                # Language Selection
+                lang = st.radio(
+                    "Language:", 
+                    ["🇺🇸 English", "🇪🇬 العربية"],  # Changed Saudi flag to Egyptian flag
+                    horizontal=True,
+                    index=0 if st.session_state.lang == 'en' else 1,
+                    key="lang_selector"
+                )
+                
+                st.session_state.lang = 'en' if lang == "🇺🇸 English" else 'ar'
+                
+                # Suggested Questions
+                questions = {
+                    "en": [
+                        "What abnormalities do you see?",
+                        "Are there any fractures visible?",
+                        "Is this result normal or abnormal?",
+                        "Describe the key medical findings",
+                        "Any signs of infection present?",
+                        "Is there a tumor or mass visible?",
+                        "What is your diagnostic assessment?"
+                    ],
+                    "ar": [
+                        "ما هي التشوهات التي تراها؟",
+                        "هل هناك أي كسور مرئية؟",
+                        "هل هذه النتيجة طبيعية أم غير طبيعية؟",
+                        "صف النتائج الطبية الرئيسية",
+                        "هل هناك أي علامات للعدوى؟",
+                        "هل هناك ورم أو كتلة مرئية؟",
+                        "ما هو تقييمك التشخيصي؟"
+                    ]
+                }
+                
+                st.markdown('<div class="quick-questions">', unsafe_allow_html=True)
+                for i, q in enumerate(questions[st.session_state.lang]):
+                    if st.button(q, key=f"q_{i}_{st.session_state.lang}"):
+                        st.session_state.question = q
+                st.markdown('</div>', unsafe_allow_html=True)
+                
+                # Custom Question
+                placeholder = "Type your medical question here..." if st.session_state.lang == 'en' else "اكتب سؤالك الطبي هنا..."
+                question = st.text_area(
+                    "Your Question:", 
+                    value=st.session_state.get('question', ''),
+                    placeholder=placeholder,
+                    height=120,
+                    label_visibility="collapsed"
+                )
+                
+                # Analyze Button
+                if st.button("🔬 Analyze Medical Image", type="primary", use_container_width=True):
+                    if uploaded_file is None:
+                        st.warning("Please upload a medical image first")
+                    elif not question:
+                        st.warning("Please enter a question about the medical image")
                     else:
-                        display_question_en, _ = translate_text(question, "ar", "en")
-                        model_question = question
-                        display_question_ar = question
-                    
-                    # Add medical context
-                    contextualized_question = get_medical_context(model_question)
-                    
-                    # Analyze image
-                    with st.spinner("🧠 Analyzing your medical image..."):
-                        arabic_answer = analyze_medical_image(image, contextualized_question, vqa_processor, vqa_model)
-                    
-                    # Ensure answer is in Arabic
-                    arabic_answer_display, arabic_translated = ensure_arabic_answer(arabic_answer)
-                    
-                    # Translate to English
-                    with st.spinner("🌐 Translating results..."):
-                        english_answer, _ = translate_text(arabic_answer, "ar", "en")
-                    
-                    # Display results
-                    st.markdown('''
-                    <div class="result-box">
-                        <h3>🔍 Medical Analysis Results</h3>
-                    </div>
-                    ''', unsafe_allow_html=True)
-                    
-                    # Question display
-                    st.markdown(f'''
-                    <div class="translation-item">
-                        <strong>Question:</strong> 
-                        {display_question_en}
-                        <span class="language-badge english-badge">EN</span>
-                    </div>
-                    ''', unsafe_allow_html=True)
-                    
-                    st.markdown(f'''
-                    <div class="translation-item rtl-text">
-                        <strong>السؤال:</strong> 
-                        {display_question_ar}
-                        <span class="language-badge arabic-badge">AR</span>
-                    </div>
-                    ''', unsafe_allow_html=True)
-                    
-                    # Answer display
-                    st.markdown(f'''
-                    <div class="translation-item">
-                        <strong>Analysis:</strong> 
-                        {english_answer}
-                        <span class="language-badge english-badge">EN</span>
-                    </div>
-                    ''', unsafe_allow_html=True)
-                    
-                    st.markdown(f'''
-                    <div class="translation-item rtl-text">
-                        <strong>التحليل:</strong> 
-                        {arabic_answer_display}
-                        <span class="language-badge arabic-badge">AR</span>
-                    </div>
-                    ''', unsafe_allow_html=True)
-                    
-                    # Medical disclaimer
-                    st.info("""
-                    **⚠️ Medical Disclaimer**  
-                    This AI analysis is for educational purposes only. Always consult with qualified healthcare 
-                    professionals for medical decisions. AI responses may contain errors and should not replace 
-                    professional medical judgment.
-                    """)
+                        # Translate question if needed
+                        question_is_arabic = is_arabic(question)
+                        
+                        if st.session_state.lang == 'en' and question_is_arabic:
+                            display_question_en, _ = translate_text(question, "ar", "en")
+                            model_question = question
+                            display_question_ar = question
+                        elif st.session_state.lang == 'en' and not question_is_arabic:
+                            model_question, _ = translate_text(question, "en", "ar")
+                            display_question_en = question
+                            display_question_ar = model_question
+                        elif st.session_state.lang == 'ar' and not question_is_arabic:
+                            model_question, _ = translate_text(question, "en", "ar")
+                            display_question_en = question
+                            display_question_ar = model_question
+                        else:
+                            display_question_en, _ = translate_text(question, "ar", "en")
+                            model_question = question
+                            display_question_ar = question
+                        
+                        # Add medical context
+                        contextualized_question = get_medical_context(model_question)
+                        
+                        # Analyze image
+                        with st.spinner("🧠 Analyzing your medical image..."):
+                            arabic_answer = analyze_medical_image(image, contextualized_question, vqa_processor, vqa_model)
+                        
+                        # Ensure answer is in Arabic
+                        arabic_answer_display, arabic_translated = ensure_arabic_answer(arabic_answer)
+                        
+                        # Translate to English
+                        with st.spinner("🌐 Translating results..."):
+                            english_answer, _ = translate_text(arabic_answer, "ar", "en")
+                        
+                        # Display results
+                        st.markdown('''
+                        <div class="result-box">
+                            <h3>🔍 Medical Analysis Results</h3>
+                        </div>
+                        ''', unsafe_allow_html=True)
+                        
+                        # Question display
+                        st.markdown(f'''
+                        <div class="translation-item">
+                            <strong>Question:</strong> 
+                            {display_question_en}
+                            <span class="language-badge english-badge">EN</span>
+                        </div>
+                        ''', unsafe_allow_html=True)
+                        
+                        st.markdown(f'''
+                        <div class="translation-item rtl-text">
+                            <strong>السؤال:</strong> 
+                            {display_question_ar}
+                            <span class="language-badge arabic-badge">AR</span>
+                        </div>
+                        ''', unsafe_allow_html=True)
+                        
+                        # Answer display
+                        st.markdown(f'''
+                        <div class="translation-item">
+                            <strong>Analysis:</strong> 
+                            {english_answer}
+                            <span class="language-badge english-badge">EN</span>
+                        </div>
+                        ''', unsafe_allow_html=True)
+                        
+                        st.markdown(f'''
+                        <div class="translation-item rtl-text">
+                            <strong>التحليل:</strong> 
+                            {arabic_answer_display}
+                            <span class="language-badge arabic-badge">AR</span>
+                        </div>
+                        ''', unsafe_allow_html=True)
+                        
+                        # Medical disclaimer
+                        st.info("""
+                        **⚠️ Medical Disclaimer**  
+                        This AI analysis is for educational purposes only. Always consult with qualified healthcare 
+                        professionals for medical decisions. AI responses may contain errors and should not replace 
+                        professional medical judgment.
+                        """)
         
         else:
             st.error("Failed to load AI models. Please try again later.")
     
     elif active_tab == "ℹ️ About":
-        # About section with simplified layout
+        # About section
         st.markdown('''
         <div class="analysis-section">
             <h3>ℹ️ About MediVision AI</h3>
