@@ -8,432 +8,443 @@ from deep_translator import GoogleTranslator
 
 # Configure page
 st.set_page_config(
-    page_title="MedVision AI",
+    page_title="MediVision AI - Smart Medical Analysis",
     page_icon="🩺",
     layout="wide",
-    initial_sidebar_state="collapsed"
+    initial_sidebar_state="expanded"
 )
 
-# Custom CSS
+# Modern E-Health CSS Design
 st.markdown("""
 <style>
+    /* Import Google Fonts */
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+    
+    /* Root Variables */
     :root {
-        --primary: #2563eb;
-        --secondary: #0ea5e9;
-        --accent: #10b981;
-        --light: #f0f9ff;
-        --dark: #1e293b;
-        --gray: #64748b;
-        --success: #16a34a;
-        --warning: #f59e0b;
-        --error: #dc2626;
+        --primary-blue: #0ea5e9;
+        --primary-teal: #14b8a6;
+        --primary-mint: #10d9c4;
+        --secondary-purple: #8b5cf6;
+        --accent-orange: #f97316;
+        --success-green: #22c55e;
+        --warning-yellow: #eab308;
+        --error-red: #ef4444;
+        --dark-blue: #1e40af;
+        --light-gray: #f8fafc;
+        --medium-gray: #64748b;
+        --dark-gray: #1e293b;
+        --white: #ffffff;
+        --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.05);
+        --shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.1);
+        --shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.1);
+        --shadow-xl: 0 20px 25px -5px rgb(0 0 0 / 0.1);
     }
     
+    /* Global Styles */
     * {
-        font-family: 'Segoe UI', 'Helvetica Neue', sans-serif;
+        font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
     }
     
-    .main-container {
-        max-width: 1200px;
-        margin: 0 auto;
-        padding: 0 1rem;
+    .main {
+        background: linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%);
+        min-height: 100vh;
     }
     
-    .header {
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        padding: 1rem 0;
-        border-bottom: 1px solid #e2e8f0;
-        margin-bottom: 2rem;
-    }
-    
-    .logo {
-        display: flex;
-        align-items: center;
-        gap: 0.75rem;
-        font-size: 1.75rem;
-        font-weight: 700;
-        color: var(--dark);
-    }
-    
-    .logo-icon {
-        background-color: var(--primary);
+    /* Header Styles */
+    .main-header {
+        background: linear-gradient(135deg, var(--primary-blue) 0%, var(--primary-teal) 100%);
         color: white;
-        width: 42px;
-        height: 42px;
-        border-radius: 50%;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        font-size: 1.5rem;
-    }
-    
-    .nav-tabs {
-        display: flex;
-        gap: 1.5rem;
-        background: white;
-        padding: 0.5rem;
-        border-radius: 2rem;
-        box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1);
-    }
-    
-    .nav-tab {
-        padding: 0.5rem 1.25rem;
-        border-radius: 2rem;
-        font-weight: 500;
-        cursor: pointer;
-        transition: all 0.3s ease;
-    }
-    
-    .nav-tab.active {
-        background-color: var(--primary);
-        color: white;
-    }
-    
-    .nav-tab:hover:not(.active) {
-        background-color: #f1f5f9;
-    }
-    
-    .hero {
-        text-align: center;
-        padding: 3rem 0;
-        margin-bottom: 2rem;
-    }
-    
-    .hero h1 {
-        font-size: 2.5rem;
-        font-weight: 800;
-        margin-bottom: 1rem;
-        color: var(--dark);
-    }
-    
-    .hero p {
-        font-size: 1.25rem;
-        color: var(--gray);
-        max-width: 700px;
-        margin: 0 auto;
-        line-height: 1.6;
-    }
-    
-    .card {
-        background: white;
-        border-radius: 1rem;
-        box-shadow: 0 10px 15px -3px rgba(0,0,0,0.05);
         padding: 2rem;
-        margin-bottom: 2rem;
-    }
-    
-    .section-title {
-        font-size: 1.5rem;
-        font-weight: 700;
-        margin-bottom: 1.5rem;
-        color: var(--dark);
-        display: flex;
-        align-items: center;
-        gap: 0.75rem;
-    }
-    
-    .section-title .icon {
-        background-color: var(--light);
-        width: 36px;
-        height: 36px;
-        border-radius: 50%;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        color: var(--primary);
-    }
-    
-    .upload-area {
-        border: 2px dashed #cbd5e1;
-        border-radius: 1rem;
-        padding: 3rem 2rem;
         text-align: center;
-        background-color: #f8fafc;
-        transition: all 0.3s ease;
-        margin-bottom: 2rem;
+        margin: -1rem -1rem 2rem -1rem;
+        border-radius: 0 0 2rem 2rem;
+        box-shadow: var(--shadow-xl);
     }
     
-    .upload-area:hover {
-        border-color: var(--primary);
-        background-color: #f0f9ff;
-    }
-    
-    .upload-icon {
+    .main-header h1 {
         font-size: 3rem;
-        color: var(--gray);
-        margin-bottom: 1rem;
-    }
-    
-    .image-container {
-        display: flex;
-        flex-direction: column;
-        align-items: center;
-        margin-bottom: 2rem;
-    }
-    
-    .preview-image {
-        max-width: 100%;
-        max-height: 400px;
-        border-radius: 1rem;
-        box-shadow: 0 10px 15px -3px rgba(0,0,0,0.1);
-        margin-bottom: 1rem;
-    }
-    
-    .language-selector {
-        display: flex;
-        gap: 1rem;
-        background: var(--light);
-        padding: 0.75rem;
-        border-radius: 2rem;
-        margin-bottom: 1.5rem;
-        justify-content: center;
-    }
-    
-    .lang-btn {
-        padding: 0.5rem 1.5rem;
-        border-radius: 2rem;
-        font-weight: 500;
-        cursor: pointer;
-        transition: all 0.3s ease;
-        border: none;
-        background: transparent;
-        color: var(--dark);
-    }
-    
-    .lang-btn.active {
-        background-color: white;
-        color: var(--primary);
-        box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1);
-    }
-    
-    .suggested-questions {
-        display: flex;
-        flex-wrap: wrap;
-        gap: 0.75rem;
-        margin-bottom: 1.5rem;
-        justify-content: center;
-    }
-    
-    .question-btn {
-        background-color: var(--light);
-        border: none;
-        border-radius: 1rem;
-        padding: 0.75rem 1.25rem;
-        font-size: 0.95rem;
-        color: var(--dark);
-        cursor: pointer;
-        transition: all 0.3s ease;
-        box-shadow: 0 2px 4px rgba(0,0,0,0.05);
-    }
-    
-    .question-btn:hover {
-        background-color: #e0f2fe;
-        transform: translateY(-2px);
-    }
-    
-    .input-area {
-        margin-bottom: 1.5rem;
-    }
-    
-    textarea {
-        width: 100%;
-        border-radius: 1rem;
-        padding: 1.25rem;
-        border: 1px solid #cbd5e1;
-        font-size: 1rem;
-        min-height: 120px;
-        resize: vertical;
-        transition: all 0.3s ease;
-    }
-    
-    textarea:focus {
-        outline: none;
-        border-color: var(--primary);
-        box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
-    }
-    
-    .analyze-btn {
-        background-color: var(--primary);
-        color: white;
-        border: none;
-        border-radius: 1rem;
-        padding: 1rem 2rem;
-        font-size: 1.1rem;
-        font-weight: 600;
-        cursor: pointer;
-        transition: all 0.3s ease;
-        width: 100%;
-        box-shadow: 0 4px 6px -1px rgba(37, 99, 235, 0.3);
-    }
-    
-    .analyze-btn:hover {
-        background-color: #1d4ed8;
-        transform: translateY(-2px);
-        box-shadow: 0 6px 8px -1px rgba(37, 99, 235, 0.4);
-    }
-    
-    .result-container {
-        background: white;
-        border-radius: 1rem;
-        box-shadow: 0 10px 15px -3px rgba(0,0,0,0.05);
-        padding: 2rem;
-        margin-top: 2rem;
-    }
-    
-    .result-title {
-        display: flex;
-        align-items: center;
-        gap: 0.75rem;
-        font-size: 1.25rem;
         font-weight: 700;
-        margin-bottom: 1.5rem;
-        color: var(--dark);
+        margin: 0;
+        text-shadow: 0 2px 4px rgba(0,0,0,0.1);
     }
     
-    .result-card {
-        background-color: #f8fafc;
+    .main-header p {
+        font-size: 1.2rem;
+        margin: 0.5rem 0 0 0;
+        opacity: 0.9;
+        font-weight: 300;
+    }
+    
+    /* Feature Cards */
+    .feature-card {
+        background: linear-gradient(135deg, var(--white) 0%, #f8fafc 100%);
+        padding: 2rem;
         border-radius: 1rem;
-        padding: 1.5rem;
-        margin-bottom: 1.5rem;
-        border-left: 4px solid var(--accent);
+        border: 1px solid #e2e8f0;
+        margin: 1.5rem 0;
+        box-shadow: var(--shadow-md);
+        transition: all 0.3s ease;
+        position: relative;
+        overflow: hidden;
     }
     
-    .result-card-title {
+    .feature-card::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        height: 4px;
+        background: linear-gradient(90deg, var(--primary-blue), var(--primary-teal), var(--primary-mint));
+    }
+    
+    .feature-card:hover {
+        transform: translateY(-2px);
+        box-shadow: var(--shadow-lg);
+        border-color: var(--primary-blue);
+    }
+    
+    .feature-card h3 {
+        color: var(--dark-blue);
+        font-size: 1.5rem;
         font-weight: 600;
-        margin-bottom: 0.75rem;
-        color: var(--dark);
+        margin-bottom: 1rem;
         display: flex;
         align-items: center;
         gap: 0.5rem;
     }
     
-    .result-content {
-        color: var(--dark);
-        line-height: 1.6;
+    /* Status Cards */
+    .status-card {
+        background: var(--white);
+        padding: 1.5rem;
+        border-radius: 0.75rem;
+        margin: 1rem 0;
+        box-shadow: var(--shadow-sm);
+        border-left: 4px solid var(--success-green);
+        transition: all 0.3s ease;
     }
     
-    .lang-tag {
+    .status-card:hover {
+        box-shadow: var(--shadow-md);
+    }
+    
+    .status-success {
+        border-left-color: var(--success-green);
+        background: linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%);
+    }
+    
+    .status-error {
+        border-left-color: var(--error-red);
+        background: linear-gradient(135deg, #fef2f2 0%, #fee2e2 100%);
+    }
+    
+    .status-warning {
+        border-left-color: var(--warning-yellow);
+        background: linear-gradient(135deg, #fffbeb 0%, #fef3c7 100%);
+    }
+    
+    /* Result Boxes */
+    .result-box {
+        background: linear-gradient(135deg, var(--white) 0%, #f0fdf4 100%);
+        padding: 2rem;
+        border-radius: 1rem;
+        border: 2px solid var(--success-green);
+        margin: 2rem 0;
+        box-shadow: var(--shadow-lg);
+        position: relative;
+    }
+    
+    .result-box::before {
+        content: '✨';
+        position: absolute;
+        top: -10px;
+        right: 20px;
+        background: var(--success-green);
+        color: white;
+        width: 30px;
+        height: 30px;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 14px;
+    }
+    
+    /* Translation Boxes */
+    .translation-box {
+        background: linear-gradient(135deg, var(--white) 0%, #f0f9ff 100%);
+        padding: 1.5rem;
+        border-radius: 0.75rem;
+        border: 1px solid var(--primary-blue);
+        margin: 1rem 0;
+        box-shadow: var(--shadow-sm);
+    }
+    
+    .translation-item {
+        background: rgba(255, 255, 255, 0.8);
+        padding: 1rem;
+        margin: 0.75rem 0;
+        border-radius: 0.5rem;
+        border-left: 3px solid var(--primary-teal);
+        backdrop-filter: blur(10px);
+        transition: all 0.3s ease;
+    }
+    
+    .translation-item:hover {
+        background: rgba(255, 255, 255, 0.95);
+        transform: translateX(5px);
+    }
+    
+    /* Language Badges */
+    .language-badge {
+        display: inline-flex;
+        align-items: center;
         padding: 0.25rem 0.75rem;
         border-radius: 2rem;
         font-size: 0.75rem;
         font-weight: 600;
         margin-left: 0.5rem;
+        text-transform: uppercase;
+        letter-spacing: 0.025em;
     }
     
-    .en-tag {
-        background-color: #dbeafe;
-        color: var(--primary);
+    .english-badge {
+        background: linear-gradient(135deg, var(--primary-blue) 0%, var(--dark-blue) 100%);
+        color: white;
+        box-shadow: var(--shadow-sm);
     }
     
-    .ar-tag {
-        background-color: #dcfce7;
-        color: var(--success);
+    .arabic-badge {
+        background: linear-gradient(135deg, var(--primary-teal) 0%, var(--success-green) 100%);
+        color: white;
+        box-shadow: var(--shadow-sm);
     }
     
-    .warning-tag {
-        background-color: #fef3c7;
-        color: var(--warning);
-    }
-    
-    .disclaimer {
-        background-color: #fffbeb;
+    .warning-badge {
+        background: linear-gradient(135deg, var(--warning-yellow) 0%, var(--accent-orange) 100%);
+        color: white;
+        padding: 0.2rem 0.5rem;
         border-radius: 1rem;
-        padding: 1.5rem;
-        margin-top: 2rem;
-        border-left: 4px solid var(--warning);
+        font-size: 0.7rem;
+        font-weight: 500;
+        margin-left: 0.5rem;
+        animation: pulse 2s infinite;
     }
     
-    .disclaimer-title {
-        display: flex;
-        align-items: center;
-        gap: 0.5rem;
-        font-weight: 600;
-        margin-bottom: 0.75rem;
-        color: var(--warning);
+    @keyframes pulse {
+        0%, 100% { opacity: 1; }
+        50% { opacity: 0.7; }
     }
     
-    .about-content {
-        line-height: 1.8;
-        color: var(--dark);
-    }
-    
-    .tech-grid {
+    /* Quick Questions */
+    .quick-questions {
         display: grid;
-        grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
-        gap: 1.5rem;
-        margin-top: 2rem;
+        grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+        gap: 0.75rem;
+        margin-bottom: 1.5rem;
     }
     
-    .tech-card {
-        background: white;
-        border-radius: 1rem;
-        padding: 1.5rem;
-        text-align: center;
-        box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05);
+    .question-btn {
+        background: linear-gradient(135deg, var(--white) 0%, #f1f5f9 100%);
+        border: 2px solid #e2e8f0;
+        padding: 1rem;
+        border-radius: 0.75rem;
+        cursor: pointer;
         transition: all 0.3s ease;
+        text-align: left;
+        font-weight: 500;
+        color: var(--dark-gray);
     }
     
-    .tech-card:hover {
-        transform: translateY(-5px);
-        box-shadow: 0 10px 15px -3px rgba(0,0,0,0.1);
+    .question-btn:hover {
+        border-color: var(--primary-blue);
+        background: linear-gradient(135deg, var(--primary-blue) 0%, var(--primary-teal) 100%);
+        color: white;
+        transform: translateY(-2px);
+        box-shadow: var(--shadow-md);
     }
     
-    .tech-icon {
-        font-size: 2.5rem;
-        margin-bottom: 1rem;
-        color: var(--primary);
+    /* Info Boxes */
+    .info-box {
+        background: linear-gradient(135deg, #dbeafe 0%, #bfdbfe 100%);
+        padding: 1rem;
+        border-radius: 0.75rem;
+        border-left: 4px solid var(--primary-blue);
+        margin: 1rem 0;
+        box-shadow: var(--shadow-sm);
     }
     
-    .footer {
-        text-align: center;
-        padding: 2rem 0;
-        margin-top: 3rem;
-        color: var(--gray);
-        border-top: 1px solid #e2e8f0;
+    .error-box {
+        background: linear-gradient(135deg, #fee2e2 0%, #fecaca 100%);
+        padding: 1.5rem;
+        border-radius: 1rem;
+        border: 2px solid var(--error-red);
+        margin: 1rem 0;
+        box-shadow: var(--shadow-md);
     }
     
-    /* RTL support for Arabic */
+    .warning-box {
+        background: linear-gradient(135deg, #fef3c7 0%, #fed7aa 100%);
+        padding: 1rem;
+        border-radius: 0.75rem;
+        border-left: 4px solid var(--warning-yellow);
+        margin: 1rem 0;
+        box-shadow: var(--shadow-sm);
+    }
+    
+    /* RTL Text Support */
     .rtl-text {
         direction: rtl;
         text-align: right;
         font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
     }
     
-    /* Responsive design */
+    /* Sidebar Enhancements */
+    .sidebar .sidebar-content {
+        background: linear-gradient(135deg, var(--white) 0%, #f8fafc 100%);
+    }
+    
+    /* Model Status Indicators */
+    .model-status {
+        display: flex;
+        align-items: center;
+        padding: 0.75rem;
+        border-radius: 0.5rem;
+        margin: 0.5rem 0;
+        font-weight: 500;
+        gap: 0.5rem;
+    }
+    
+    .model-status.status-success {
+        background: linear-gradient(135deg, #dcfce7 0%, #bbf7d0 100%);
+        color: #166534;
+        border: 1px solid #22c55e;
+    }
+    
+    .model-status.status-error {
+        background: linear-gradient(135deg, #fee2e2 0%, #fecaca 100%);
+        color: #b91c1c;
+        border: 1px solid #ef4444;
+    }
+    
+    /* Loading Animation */
+    .loading-spinner {
+        display: inline-block;
+        width: 20px;
+        height: 20px;
+        border: 3px solid #f3f3f3;
+        border-top: 3px solid var(--primary-blue);
+        border-radius: 50%;
+        animation: spin 1s linear infinite;
+        margin-right: 0.5rem;
+    }
+    
+    @keyframes spin {
+        0% { transform: rotate(0deg); }
+        100% { transform: rotate(360deg); }
+    }
+    
+    /* Responsive Design */
     @media (max-width: 768px) {
-        .header {
-            flex-direction: column;
-            gap: 1rem;
-        }
-        
-        .nav-tabs {
-            width: 100%;
-            justify-content: center;
-        }
-        
-        .hero h1 {
+        .main-header h1 {
             font-size: 2rem;
         }
         
-        .hero p {
-            font-size: 1.1rem;
+        .main-header p {
+            font-size: 1rem;
         }
+        
+        .feature-card {
+            padding: 1.5rem;
+            margin: 1rem 0;
+        }
+        
+        .quick-questions {
+            grid-template-columns: 1fr;
+        }
+    }
+    
+    /* Custom Button Styles */
+    .stButton > button {
+        background: linear-gradient(135deg, var(--primary-blue) 0%, var(--primary-teal) 100%);
+        color: white;
+        border: none;
+        border-radius: 0.75rem;
+        padding: 0.75rem 2rem;
+        font-weight: 600;
+        transition: all 0.3s ease;
+        box-shadow: var(--shadow-md);
+    }
+    
+    .stButton > button:hover {
+        transform: translateY(-2px);
+        box-shadow: var(--shadow-lg);
+        background: linear-gradient(135deg, var(--dark-blue) 0%, var(--primary-blue) 100%);
+    }
+    
+    /* File Uploader Enhancement */
+    .uploadedFile {
+        border: 2px dashed var(--primary-blue);
+        border-radius: 1rem;
+        padding: 2rem;
+        text-align: center;
+        background: linear-gradient(135deg, var(--white) 0%, #f0f9ff 100%);
+        transition: all 0.3s ease;
+    }
+    
+    .uploadedFile:hover {
+        border-color: var(--primary-teal);
+        background: linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%);
+    }
+    
+    /* Medical Icons */
+    .medical-icon {
+        font-size: 1.5rem;
+        margin-right: 0.5rem;
+        color: var(--primary-teal);
+    }
+    
+    /* Disclaimer */
+    .medical-disclaimer {
+        background: linear-gradient(135deg, #fff7ed 0%, #fed7aa 50%, #fb923c 100%);
+        padding: 1.5rem;
+        border-radius: 1rem;
+        border-left: 4px solid var(--accent-orange);
+        margin: 2rem 0;
+        box-shadow: var(--shadow-md);
+        position: relative;
+    }
+    
+    .medical-disclaimer::before {
+        content: '⚠️';
+        position: absolute;
+        top: -10px;
+        left: 20px;
+        background: var(--accent-orange);
+        color: white;
+        width: 30px;
+        height: 30px;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 14px;
     }
 </style>
 """, unsafe_allow_html=True)
 
 @st.cache_resource(show_spinner=False)
 def load_medical_vqa_model():
-    """Load medical VQA model"""
+    """Load medical VQA model with enhanced UI feedback"""
     try:
         model_name = "sharawy53/final_diploma_blip-med-rad-arabic"
         processor = BlipProcessor.from_pretrained(model_name)
         model = BlipForQuestionAnswering.from_pretrained(model_name)
         return processor, model
     except Exception as e:
-        st.error(f"Error loading VQA model: {str(e)}")
+        st.error(f"🚨 Error loading VQA model: {str(e)}")
         return None, None
 
 def is_arabic(text):
@@ -442,52 +453,60 @@ def is_arabic(text):
     return bool(arabic_pattern.search(text))
 
 def translate_text(text, source_lang, target_lang, max_retries=3):
-    """Translate text using deep-translator"""
+    """Translate text using deep-translator with enhanced error handling"""
     if not text.strip():
         return text, False
         
     try:
-        # Add retry mechanism
         for attempt in range(max_retries):
             try:
-                # Use GoogleTranslator for reliable translation
                 translator = GoogleTranslator(source=source_lang, target=target_lang)
                 translated_text = translator.translate(text)
                 return translated_text, True
             except Exception as e:
                 if attempt < max_retries - 1:
-                    wait_time = 2 ** attempt  # Exponential backoff
+                    wait_time = 2 ** attempt
                     time.sleep(wait_time)
                     continue
                 else:
                     raise
         return text, False
     except Exception as e:
+        st.markdown(f'''
+        <div class="error-box">
+            <h4>🚨 Translation Error</h4>
+            <p><strong>Error Type:</strong> {type(e).__name__}</p>
+            <p><strong>Message:</strong> {str(e)}</p>
+            <div class="warning-box">
+                <h5>💡 Troubleshooting Tips:</h5>
+                <ul>
+                    <li>Verify text doesn't contain special characters</li>
+                    <li>Ensure text length is under 5000 characters</li>
+                    <li>Check language codes (en for English, ar for Arabic)</li>
+                    <li>Try again after a few seconds</li>
+                </ul>
+            </div>
+        </div>
+        ''', unsafe_allow_html=True)
         return text, False
 
 def analyze_medical_image(image, question, processor, model):
     """Analyze medical image with VQA"""
     try:
-        # Process image and question
         inputs = processor(image, question, return_tensors="pt")
-        
-        # Generate response
         with torch.no_grad():
             out = model.generate(**inputs, max_length=100, num_beams=5)
-        
-        # Decode response
         answer = processor.decode(out[0], skip_special_tokens=True)
         return answer
     except Exception as e:
-        return f"Error analyzing image: {str(e)}"
+        return f"🚨 Error analyzing image: {str(e)}"
 
 def ensure_arabic_answer(answer, source_lang='en', target_lang='ar'):
     """Ensure the answer is in Arabic, translate if necessary"""
     if is_arabic(answer):
-        return answer, False  # Already in Arabic, no translation needed
+        return answer, False
     
     try:
-        # Translate to Arabic if not already in Arabic
         translated, success = translate_text(answer, source_lang, target_lang)
         if success:
             return translated, True
@@ -524,344 +543,451 @@ def main():
         st.session_state.question = ''
     if 'lang' not in st.session_state:
         st.session_state.lang = 'en'
-    if 'active_tab' not in st.session_state:
-        st.session_state.active_tab = 'analysis'
     
-    # Main container
-    st.markdown('<div class="main-container">', unsafe_allow_html=True)
-    
-    # Header with navigation
-    st.markdown("""
-    <div class="header">
-        <div class="logo">
-            <div class="logo-icon">🩺</div>
-            <span>MedVision AI</span>
-        </div>
-        <div class="nav-tabs">
-            <div class="nav-tab %s" onclick="setActiveTab('analysis')">Image Analysis</div>
-            <div class="nav-tab %s" onclick="setActiveTab('about')">About</div>
-        </div>
+    # Modern Header
+    st.markdown('''
+    <div class="main-header">
+        <h1>🩺 MediVision AI</h1>
+        <p>Advanced Medical Image Analysis & Multilingual Support</p>
     </div>
-    """ % (
-        "active" if st.session_state.active_tab == 'analysis' else "",
-        "active" if st.session_state.active_tab == 'about' else ""
-    ), unsafe_allow_html=True)
+    ''', unsafe_allow_html=True)
     
-    # Add JS for tab switching
-    st.markdown("""
-    <script>
-    function setActiveTab(tabName) {
-        window.parent.document.querySelectorAll('div[role="tab"]').forEach(tab => {
-            tab.classList.remove('active');
-        });
-        window.parent.document.querySelector(`div[onclick*="${tabName}"]`).classList.add('active');
-        window.parent.postMessage({type: 'setActiveTab', tab: tabName}, '*');
-    }
+    # Enhanced Sidebar
+    st.sidebar.markdown('''
+    <div style="text-align: center; padding: 1rem; background: linear-gradient(135deg, #0ea5e9 0%, #14b8a6 100%); border-radius: 1rem; margin-bottom: 1rem;">
+        <h2 style="color: white; margin: 0;">🏥 Navigation</h2>
+    </div>
+    ''', unsafe_allow_html=True)
     
-    window.addEventListener('message', function(event) {
-        if (event.data.type === 'setActiveTab') {
-            window.parent.document.querySelectorAll('div[role="tab"]').forEach(tab => {
-                tab.classList.remove('active');
-            });
-            window.parent.document.querySelector(`div[onclick*="${event.data.tab}"]`).classList.add('active');
-        }
-    });
-    </script>
-    """, unsafe_allow_html=True)
+    app_mode = st.sidebar.selectbox(
+        "Choose Application Mode", 
+        ["🔬 Medical Image Analysis", "ℹ️ About & Information"],
+        help="Select the functionality you want to use"
+    )
     
-    # Hero section
-    if st.session_state.active_tab == 'analysis':
-        st.markdown("""
-        <div class="hero">
-            <h1>Medical Image Analysis with AI</h1>
-            <p>Upload medical images and get instant AI-powered insights. Ask questions in English or Arabic and receive detailed analysis.</p>
+    # Enhanced Model Status in Sidebar
+    st.sidebar.markdown("---")
+    st.sidebar.markdown('''
+    <div style="text-align: center; padding: 0.5rem;">
+        <h3 style="color: #1e40af;">🤖 AI System Status</h3>
+    </div>
+    ''', unsafe_allow_html=True)
+    
+    # Translation Service Status
+    st.sidebar.markdown('''
+    <div class="info-box">
+        <h4>🌐 Translation Service</h4>
+        <p><strong>Provider:</strong> Google Translator</p>
+        <p><strong>Status:</strong> <span style="color: #22c55e;">✅ Active</span></p>
+        <p><strong>Languages:</strong> Arabic ↔ English</p>
+        <p><strong>Reliability:</strong> High Accuracy</p>
+    </div>
+    ''', unsafe_allow_html=True)
+    
+    if app_mode == "🔬 Medical Image Analysis":
+        st.markdown('''
+        <div class="feature-card">
+            <h3>🔬 Medical Image Analysis</h3>
+            <p>Upload medical images (X-rays, CT scans, MRIs, Ultrasounds) and get AI-powered analysis with multilingual support. Our advanced vision models provide detailed insights about your medical imagery.</p>
         </div>
-        """, unsafe_allow_html=True)
-    
-    # Main content
-    if st.session_state.active_tab == 'analysis':
-        with st.container():
-            col1, col2 = st.columns([1, 1], gap="large")
+        ''', unsafe_allow_html=True)
+        
+        # Load models with enhanced feedback
+        with st.spinner("🔄 Loading AI models..."):
+            vqa_processor, vqa_model = load_medical_vqa_model()
+        
+        # Display enhanced model status
+        if vqa_processor and vqa_model:
+            st.sidebar.markdown('''
+            <div class="model-status status-success">
+                <span class="loading-spinner" style="border-top-color: #22c55e;"></span>
+                Medical VQA Model: ✅ Ready
+            </div>
+            ''', unsafe_allow_html=True)
+        else:
+            st.sidebar.markdown('''
+            <div class="model-status status-error">
+                ❌ Medical VQA Model: Failed to Load
+            </div>
+            ''', unsafe_allow_html=True)
+        
+        if vqa_processor and vqa_model:
+            # Enhanced File Upload Section
+            st.markdown('''
+            <div class="feature-card">
+                <h3>📤 Upload Medical Image</h3>
+                <p>Supported formats: JPG, PNG, BMP | Maximum size: 200MB</p>
+            </div>
+            ''', unsafe_allow_html=True)
             
-            with col1:
-                # Image upload section
-                st.markdown('<div class="card">', unsafe_allow_html=True)
-                st.markdown('<div class="section-title"><div class="icon">🖼️</div> Upload Medical Image</div>', unsafe_allow_html=True)
+            uploaded_file = st.file_uploader(
+                "Choose a medical image...", 
+                type=["jpg", "jpeg", "png", "bmp"],
+                help="Upload X-rays, CT scans, MRIs, or ultrasound images for AI analysis"
+            )
+            
+            if uploaded_file is not None:
+                image = Image.open(uploaded_file).convert("RGB")
                 
-                uploaded_file = st.file_uploader("", type=["jpg", "jpeg", "png", "bmp"], 
-                                               label_visibility="collapsed")
+                # Enhanced Image Display
+                col1, col2 = st.columns([1, 1])
                 
-                if uploaded_file:
-                    image = Image.open(uploaded_file).convert("RGB")
-                    st.markdown('<div class="image-container">', unsafe_allow_html=True)
-                    st.image(image, use_column_width=True, caption="", output_format="PNG", 
-                            use_container_width=True, clamp=True, 
-                            channels="RGB", format="PNG", 
-                            width=None)
-                    st.markdown('</div>', unsafe_allow_html=True)
-                else:
-                    st.markdown("""
-                    <div class="upload-area">
-                        <div class="upload-icon">📁</div>
-                        <h3>Drag & Drop your medical image here</h3>
-                        <p>Supported formats: JPG, PNG, BMP</p>
+                with col1:
+                    st.markdown('''
+                    <div class="feature-card">
+                        <h3>🖼️ Uploaded Image</h3>
                     </div>
-                    """, unsafe_allow_html=True)
+                    ''', unsafe_allow_html=True)
+                    
+                    st.image(image, caption="Medical Image for Analysis", use_container_width=True)
+                    
+                    st.markdown(f'''
+                    <div class="info-box">
+                        <p><strong>📏 Image Dimensions:</strong> {image.size[0]} x {image.size[1]} pixels</p>
+                        <p><strong>📁 File Size:</strong> {round(uploaded_file.size / 1024, 1)} KB</p>
+                        <p><strong>🎨 Format:</strong> {uploaded_file.type}</p>
+                    </div>
+                    ''', unsafe_allow_html=True)
                 
-                st.markdown('</div>', unsafe_allow_html=True)  # Close card
-            
-            with col2:
-                # Analysis section
-                st.markdown('<div class="card">', unsafe_allow_html=True)
-                st.markdown('<div class="section-title"><div class="icon">💬</div> Ask About the Image</div>', unsafe_allow_html=True)
-                
-                # Language selector
-                st.markdown('<div class="language-selector">', unsafe_allow_html=True)
-                if st.button("English", key="lang_en", type="primary" if st.session_state.lang == 'en' else "secondary"):
-                    st.session_state.lang = 'en'
-                if st.button("العربية", key="lang_ar", type="primary" if st.session_state.lang == 'ar' else "secondary"):
-                    st.session_state.lang = 'ar'
-                st.markdown('</div>', unsafe_allow_html=True)
-                
-                # Suggested questions
-                st.markdown('<div class="suggested-questions">', unsafe_allow_html=True)
-                
-                questions = {
-                    "en": [
-                        "What abnormalities do you see?",
-                        "Are there any fractures?",
-                        "Describe the key findings",
-                        "Is there a tumor visible?",
-                        "What is the diagnosis?"
-                    ],
-                    "ar": [
-                        "ما هي التشوهات التي تراها؟",
-                        "هل هناك أي كسور؟",
-                        "صف النتائج الرئيسية",
-                        "هل هناك ورم مرئي؟",
-                        "ما هو التشخيص؟"
-                    ]
-                }
-                
-                for q in questions[st.session_state.lang]:
-                    if st.button(q, key=f"q_{q[:5]}", use_container_width=True):
-                        st.session_state.question = q
-                
-                st.markdown('</div>', unsafe_allow_html=True)
-                
-                # Question input
-                st.markdown('<div class="input-area">', unsafe_allow_html=True)
-                placeholder = "Type your question here..." if st.session_state.lang == 'en' else "اكتب سؤالك هنا..."
-                question = st.text_area("", value=st.session_state.get('question', ''), 
-                                      placeholder=placeholder, height=120,
-                                      label_visibility="collapsed")
-                st.markdown('</div>', unsafe_allow_html=True)
-                
-                # Analyze button
-                if st.button("🔍 Analyze Image", key="analyze_btn", use_container_width=True):
-                    st.session_state.analyze_clicked = True
-                else:
-                    st.session_state.analyze_clicked = False
-                
-                st.markdown('</div>', unsafe_allow_html=True)  # Close card
-        
-        # Load models only when needed
-        if 'vqa_processor' not in st.session_state or 'vqa_model' not in st.session_state:
-            with st.spinner("Loading AI models..."):
-                vqa_processor, vqa_model = load_medical_vqa_model()
-                st.session_state.vqa_processor = vqa_processor
-                st.session_state.vqa_model = vqa_model
-        
-        # Display results if analyze was clicked
-        if st.session_state.get('analyze_clicked', False) and uploaded_file and question:
-            # Store original question
-            original_question = question
-            
-            # Determine if question is Arabic or English
-            question_is_arabic = is_arabic(question)
-            
-            # Prepare variables for display
-            display_question_en = ""
-            display_question_ar = ""
-            
-            # Case 1: User interface is English but question is in Arabic
-            if st.session_state.lang == 'en' and question_is_arabic:
-                # Translate Arabic question to English for display
-                with st.spinner("Translating question to English..."):
-                    display_question_en, success = translate_text(
-                        question, "ar", "en"
+                with col2:
+                    # Enhanced Language Selector
+                    st.markdown('''
+                    <div class="feature-card">
+                        <h3>🌍 Language Settings</h3>
+                    </div>
+                    ''', unsafe_allow_html=True)
+                    
+                    lang = st.radio(
+                        "Select Interface Language:", 
+                        ["🇺🇸 English", "🇸🇦 العربية"],
+                        horizontal=True,
+                        index=0 if st.session_state.lang == 'en' else 1,
+                        help="Choose your preferred language for questions and results"
                     )
-                    if not success:
-                        display_question_en = question + " [Auto]"
-                
-                # For model, we can use the original Arabic question
-                model_question = question
-                display_question_ar = question
-            
-            # Case 2: User interface is English and question is in English
-            elif st.session_state.lang == 'en' and not question_is_arabic:
-                # Translate English question to Arabic for the model
-                with st.spinner("Translating question to Arabic..."):
-                    model_question, success = translate_text(
-                        question, "en", "ar"
+                    
+                    st.session_state.lang = 'en' if lang == "🇺🇸 English" else 'ar'
+                    
+                    # Enhanced Question Input Section
+                    st.markdown('''
+                    <div class="feature-card">
+                        <h3>❓ Ask Medical Questions</h3>
+                        <p>Click on suggested questions or type your own custom question</p>
+                    </div>
+                    ''', unsafe_allow_html=True)
+                    
+                    # Enhanced Suggested Questions
+                    questions = {
+                        "en": [
+                            "🔍 What abnormalities do you see?",
+                            "🦴 Are there any fractures visible?",
+                            "✅ Is this result normal or abnormal?",
+                            "📝 Describe the key medical findings",
+                            "🦠 Any signs of infection present?",
+                            "🎯 Is there a tumor or mass visible?",
+                            "🩺 What is your diagnostic assessment?"
+                        ],
+                        "ar": [
+                            "🔍 ما هي التشوهات التي تراها؟",
+                            "🦴 هل هناك أي كسور مرئية؟",
+                            "✅ هل هذه النتيجة طبيعية أم غير طبيعية؟",
+                            "📝 صف النتائج الطبية الرئيسية",
+                            "🦠 هل هناك أي علامات للعدوى؟",
+                            "🎯 هل هناك ورم أو كتلة مرئية؟",
+                            "🩺 ما هو تقييمك التشخيصي؟"
+                        ]
+                    }
+                    
+                    st.markdown('<div class="quick-questions">', unsafe_allow_html=True)
+                    for i, q in enumerate(questions[st.session_state.lang]):
+                        if st.button(q, key=f"q_{i}_{st.session_state.lang}", use_container_width=True):
+                            st.session_state.question = q.split(' ', 1)[1]  # Remove emoji
+                    st.markdown('</div>', unsafe_allow_html=True)
+                    
+                    # Enhanced Custom Question Input
+                    placeholder = "Type your medical question here..." if st.session_state.lang == 'en' else "اكتب سؤالك الطبي هنا..."
+                    question = st.text_area(
+                        "✍️ Custom Question:", 
+                        value=st.session_state.get('question', ''),
+                        placeholder=placeholder,
+                        height=100,
+                        help="Ask specific questions about the medical image"
                     )
-                    if not success:
-                        model_question = question + " [Auto]"
-                
-                display_question_en = question
-                display_question_ar = model_question
-            
-            # Case 3: User interface is Arabic but question is in English
-            elif st.session_state.lang == 'ar' and not question_is_arabic:
-                # Translate English question to Arabic for display and model
-                with st.spinner("Translating question to Arabic..."):
-                    model_question, success = translate_text(
-                        question, "en", "ar"
-                    )
-                    if not success:
-                        model_question = question + " [Auto]"
-                
-                # For English display, we can use the original question
-                display_question_en = question
-                display_question_ar = model_question
-            
-            # Case 4: User interface is Arabic and question is in Arabic
-            else:  # st.session_state.lang == 'ar' and question_is_arabic
-                # Translate Arabic question to English for display
-                with st.spinner("Translating question to English..."):
-                    display_question_en, success = translate_text(
-                        question, "ar", "en"
-                    )
-                    if not success:
-                        display_question_en = question + " [Auto]"
-                
-                model_question = question
-                display_question_ar = question
-            
-            # Add medical context to the question that will be sent to the model
-            contextualized_question = get_medical_context(model_question)
-            
-            # Analyze image
-            with st.spinner("Analyzing medical image..."):
-                arabic_answer = analyze_medical_image(image, contextualized_question, 
-                                                     st.session_state.vqa_processor, 
-                                                     st.session_state.vqa_model)
-            
-            # Ensure the answer is properly in Arabic
-            arabic_answer_display, arabic_translated = ensure_arabic_answer(arabic_answer)
-            
-            # Always translate the answer to English
-            with st.spinner("Translating answer to English..."):
-                english_answer, success = translate_text(
-                    arabic_answer, "ar", "en"
-                )
-                if not success:
-                    english_answer = arabic_answer + " [Auto]"
-            
-            # Display results
-            st.markdown('<div class="result-container">', unsafe_allow_html=True)
-            st.markdown('<div class="result-title"><div>📋</div> Analysis Results</div>', unsafe_allow_html=True)
-            
-            # Question display
-            st.markdown('<div class="result-card">', unsafe_allow_html=True)
-            st.markdown('<div class="result-card-title">Your Question</div>', unsafe_allow_html=True)
-            st.markdown(f'<div class="result-content">{display_question_en} <span class="lang-tag en-tag">EN</span></div>', unsafe_allow_html=True)
-            st.markdown('</div>', unsafe_allow_html=True)
-            
-            st.markdown('<div class="result-card rtl-text">', unsafe_allow_html=True)
-            st.markdown('<div class="result-card-title">سؤالك</div>', unsafe_allow_html=True)
-            st.markdown(f'<div class="result-content">{display_question_ar} <span class="lang-tag ar-tag">AR</span></div>', unsafe_allow_html=True)
-            st.markdown('</div>', unsafe_allow_html=True)
-            
-            # Answer display
-            st.markdown('<div class="result-card">', unsafe_allow_html=True)
-            st.markdown('<div class="result-card-title">Answer</div>', unsafe_allow_html=True)
-            st.markdown(f'<div class="result-content">{english_answer} <span class="lang-tag en-tag">EN</span></div>', unsafe_allow_html=True)
-            st.markdown('</div>', unsafe_allow_html=True)
-            
-            st.markdown('<div class="result-card rtl-text">', unsafe_allow_html=True)
-            st.markdown('<div class="result-card-title">الإجابة</div>', unsafe_allow_html=True)
-            st.markdown(f'<div class="result-content">{arabic_answer_display} <span class="lang-tag ar-tag">AR</span></div>', unsafe_allow_html=True)
-            st.markdown('</div>', unsafe_allow_html=True)
-            
-            # Disclaimer
-            st.markdown("""
-            <div class="disclaimer">
-                <div class="disclaimer-title">⚠️ Medical Disclaimer</div>
-                <p>This analysis is for educational purposes only. Always consult healthcare professionals for medical decisions.</p>
+                    
+                    # Enhanced Analyze Button
+                    if st.button("🔬 Analyze Medical Image", type="primary", use_container_width=True):
+                        if question:
+                            original_question = question
+                            question_is_arabic = is_arabic(question)
+                            
+                            display_question_en = ""
+                            display_question_ar = ""
+                            
+                            # Enhanced translation logic with better UI feedback
+                            if st.session_state.lang == 'en' and question_is_arabic:
+                                with st.spinner("🔄 Translating question to English..."):
+                                    display_question_en, success = translate_text(question, "ar", "en")
+                                    if not success:
+                                        display_question_en = question + " [Auto]"
+                                model_question = question
+                                display_question_ar = question
+                            
+                            elif st.session_state.lang == 'en' and not question_is_arabic:
+                                with st.spinner("🔄 Translating question to Arabic..."):
+                                    model_question, success = translate_text(question, "en", "ar")
+                                    if not success:
+                                        model_question = question + " [Auto]"
+                                display_question_en = question
+                                display_question_ar = model_question
+                            
+                            elif st.session_state.lang == 'ar' and not question_is_arabic:
+                                with st.spinner("🔄 Translating question to Arabic..."):
+                                    model_question, success = translate_text(question, "en", "ar")
+                                    if not success:
+                                        model_question = question + " [Auto]"
+                                display_question_en = question
+                                display_question_ar = model_question
+                            
+                            else:
+                                with st.spinner("🔄 Translating question to English..."):
+                                    display_question_en, success = translate_text(question, "ar", "en")
+                                    if not success:
+                                        display_question_en = question + " [Auto]"
+                                model_question = question
+                                display_question_ar = question
+                            
+                            contextualized_question = get_medical_context(model_question)
+                            
+                            # Enhanced Analysis with better feedback
+                            with st.spinner("🧠 AI is analyzing your medical image..."):
+                                arabic_answer = analyze_medical_image(image, contextualized_question, vqa_processor, vqa_model)
+                            
+                            arabic_answer_display, arabic_translated = ensure_arabic_answer(arabic_answer)
+                            
+                            with st.spinner("🌐 Translating results to English..."):
+                                english_answer, success = translate_text(arabic_answer, "ar", "en")
+                                if not success:
+                                    english_answer = arabic_answer + " [Auto]"
+                            
+                            # Enhanced Results Display
+                            st.markdown('''
+                            <div class="result-box">
+                                <h2>🔍 Medical Analysis Results</h2>
+                            </div>
+                            ''', unsafe_allow_html=True)
+                            
+                            # Enhanced Question Display
+                            st.markdown('''
+                            <div class="translation-box">
+                                <h4>❓ Your Medical Question</h4>
+                            </div>
+                            ''', unsafe_allow_html=True)
+                            
+                            st.markdown(f'''
+                            <div class="translation-item">
+                                <strong>🇺🇸 English Question:</strong> 
+                                <span>{display_question_en}</span> 
+                                <span class="language-badge english-badge">EN</span>
+                                {"<span class='warning-badge'>Auto Translated</span>" if "[Auto]" in display_question_en else ""}
+                            </div>
+                            ''', unsafe_allow_html=True)
+                            
+                            st.markdown(f'''
+                            <div class="translation-item rtl-text">
+                                <strong>🇸🇦 السؤال بالعربية:</strong> 
+                                <span>{display_question_ar}</span> 
+                                <span class="language-badge arabic-badge">AR</span>
+                                {"<span class='warning-badge'>مترجم تلقائياً</span>" if "[Auto]" in display_question_ar else ""}
+                            </div>
+                            ''', unsafe_allow_html=True)
+                            
+                            # Enhanced Answer Display
+                            st.markdown('''
+                            <div class="translation-box">
+                                <h4>🩺 AI Medical Analysis</h4>
+                            </div>
+                            ''', unsafe_allow_html=True)
+                            
+                            st.markdown(f'''
+                            <div class="translation-item">
+                                <strong>🇺🇸 English Analysis:</strong> 
+                                <span>{english_answer}</span> 
+                                <span class="language-badge english-badge">EN</span>
+                                {"<span class='warning-badge'>Auto Translated</span>" if "[Auto]" in english_answer else ""}
+                            </div>
+                            ''', unsafe_allow_html=True)
+                            
+                            st.markdown(f'''
+                            <div class="translation-item rtl-text">
+                                <strong>🇸🇦 التحليل بالعربية:</strong> 
+                                <span>{arabic_answer_display}</span> 
+                                <span class="language-badge arabic-badge">AR</span>
+                                {"<span class='warning-badge'>مترجم</span>" if arabic_translated else ""}
+                            </div>
+                            ''', unsafe_allow_html=True)
+                            
+                            # Enhanced Medical Disclaimer
+                            st.markdown('''
+                            <div class="medical-disclaimer">
+                                <h4>⚠️ Important Medical Disclaimer</h4>
+                                <p><strong>This AI analysis is for educational and research purposes only.</strong></p>
+                                <ul>
+                                    <li>🩺 NOT a substitute for professional medical diagnosis</li>
+                                    <li>👨‍⚕️ Always consult qualified healthcare professionals</li>
+                                    <li>🔬 AI responses may contain errors or limitations</li>
+                                    <li>📚 Use this tool as a learning aid, not for medical decisions</li>
+                                </ul>
+                            </div>
+                            ''', unsafe_allow_html=True)
+                        else:
+                            st.markdown('''
+                            <div class="warning-box">
+                                <h4>⚠️ Input Required</h4>
+                                <p>Please enter a question about the medical image to proceed with analysis.</p>
+                            </div>
+                            ''', unsafe_allow_html=True)
+        else:
+            st.markdown('''
+            <div class="error-box">
+                <h3>🚨 AI Model Loading Error</h3>
+                <p>The medical VQA model failed to load. This might be due to:</p>
+                <ul>
+                    <li>💾 Insufficient memory resources</li>
+                    <li>🌐 Network connectivity issues</li> 
+                    <li>⚙️ Model compatibility problems</li>
+                    <li>🔧 System configuration issues</li>
+                </ul>
+                <div class="info-box">
+                    <h4>💡 Troubleshooting Steps:</h4>
+                    <ol>
+                        <li>Refresh the page and try again</li>
+                        <li>Check your internet connection</li>
+                        <li>Clear your browser cache</li>
+                        <li>Contact technical support if issues persist</li>
+                    </ol>
+                </div>
             </div>
-            """, unsafe_allow_html=True)
-            
-            st.markdown('</div>', unsafe_allow_html=True)  # Close result-container
+            ''', unsafe_allow_html=True)
     
-    elif st.session_state.active_tab == 'about':
-        st.markdown('<div class="card">', unsafe_allow_html=True)
-        st.markdown('<div class="section-title"><div class="icon">ℹ️</div> About MedVision AI</div>', unsafe_allow_html=True)
-        
-        st.markdown("""
-        <div class="about-content">
-            <p>MedVision AI is an advanced medical imaging analysis tool powered by artificial intelligence. 
-            It helps medical professionals and students analyze medical images and get instant insights.</p>
-            
-            <h3>Key Features</h3>
-            <ul>
-                <li>AI-powered analysis of medical images (X-rays, CT scans, MRIs)</li>
-                <li>Bilingual support for English and Arabic</li>
-                <li>Intuitive question-answering interface</li>
-                <li>Instant results with detailed explanations</li>
-                <li>Educational tool for medical students</li>
-            </ul>
-            
-            <h3>How It Works</h3>
-            <ol>
-                <li>Upload a medical image (X-ray, CT scan, MRI, etc.)</li>
-                <li>Ask questions about the image in English or Arabic</li>
-                <li>Receive AI-powered analysis with detailed findings</li>
-                <li>View results in both languages for better understanding</li>
-            </ol>
-            
-            <h3>Technologies Used</h3>
-            <div class="tech-grid">
-                <div class="tech-card">
-                    <div class="tech-icon">🧠</div>
-                    <h4>BLIP Model</h4>
-                    <p>Medical VQA for image analysis</p>
-                </div>
-                <div class="tech-card">
-                    <div class="tech-icon">🤖</div>
-                    <h4>PyTorch</h4>
-                    <p>Deep learning framework</p>
-                </div>
-                <div class="tech-card">
-                    <div class="tech-icon">🌐</div>
-                    <h4>Streamlit</h4>
-                    <p>Web application interface</p>
-                </div>
-                <div class="tech-card">
-                    <div class="tech-icon">🔤</div>
-                    <h4>Translator</h4>
-                    <p>Bilingual support</p>
-                </div>
-            </div>
-            
-            <h3>Disclaimer</h3>
-            <p>This application is intended for educational and research purposes only. 
-            It is not a substitute for professional medical advice, diagnosis, or treatment. 
-            Always seek the advice of qualified healthcare providers with any questions you may have regarding medical conditions.</p>
+    elif app_mode == "ℹ️ About & Information":
+        st.markdown('''
+        <div class="feature-card">
+            <h3>ℹ️ About MediVision AI</h3>
+            <p>Advanced medical image analysis platform combining cutting-edge AI technologies with multilingual support for healthcare professionals and medical students worldwide.</p>
         </div>
-        """, unsafe_allow_html=True)
+        ''', unsafe_allow_html=True)
         
-        st.markdown('</div>', unsafe_allow_html=True)  # Close card
+        # Enhanced Features Section
+        st.markdown('''
+        <div class="feature-card">
+            <h3>🔍 Core Features</h3>
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 1rem; margin-top: 1rem;">
+                <div class="status-card status-success">
+                    <h4>🩻 Medical Image Analysis</h4>
+                    <p>Upload X-rays, CT scans, MRIs, and ultrasounds for AI-powered analysis</p>
+                </div>
+                <div class="status-card status-success">
+                    <h4>🌍 Bilingual Support</h4>
+                    <p>Ask questions in English or Arabic, receive answers in both languages</p>
+                </div>
+                <div class="status-card status-success">
+                    <h4>🧠 AI-Powered Analysis</h4>
+                    <p>State-of-the-art vision-language models specialized for medical imaging</p>
+                </div>
+                <div class="status-card status-success">
+                    <h4>🎯 Medical Context</h4>
+                    <p>Specialized understanding of medical terminology and clinical scenarios</p>
+                </div>
+            </div>
+        </div>
+        ''', unsafe_allow_html=True)
+        
+        # Enhanced Technology Stack
+        st.markdown('''
+        <div class="feature-card">
+            <h3>🛠️ Technology Stack</h3>
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 1rem; margin-top: 1rem;">
+                <div class="info-box">
+                    <h4>🖥️ Frontend Framework</h4>
+                    <p><strong>Streamlit:</strong> Modern web interface</p>
+                </div>
+                <div class="info-box">
+                    <h4>🤖 AI Models</h4>
+                    <p><strong>BLIP:</strong> Vision-language model for VQA</p>
+                </div>
+                <div class="info-box">
+                    <h4>🔥 Deep Learning</h4>
+                    <p><strong>PyTorch:</strong> Neural network framework</p>
+                </div>
+                <div class="info-box">
+                    <h4>🌐 Translation</h4>
+                    <p><strong>Google Translator:</strong> Multi-language support</p>
+                </div>
+            </div>
+        </div>
+        ''', unsafe_allow_html=True)
+        
+        # Enhanced Supported Formats
+        st.markdown('''
+        <div class="feature-card">
+            <h3>📋 Supported Medical Imaging</h3>
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem; margin-top: 1rem;">
+                <div class="status-card status-success">
+                    <h4>🩻 X-Ray Imaging</h4>
+                    <p>Chest, bone, dental X-rays</p>
+                </div>
+                <div class="status-card status-success">
+                    <h4>🧠 CT Scans</h4>
+                    <p>Brain, chest, abdominal CT</p>
+                </div>
+                <div class="status-card status-success">
+                    <h4>🔬 MRI Scans</h4>
+                    <p>All anatomical regions</p>
+                </div>
+                <div class="status-card status-success">
+                    <h4>📡 Ultrasound</h4>
+                    <p>Obstetric, cardiac, abdominal</p>
+                </div>
+            </div>
+        </div>
+        ''', unsafe_allow_html=True)
+        
+        # Enhanced System Information
+        st.markdown('''
+        <div class="feature-card">
+            <h3>🔧 System Information</h3>
+        </div>
+        ''', unsafe_allow_html=True)
+        
+        try:
+            import torch
+            st.markdown(f'''
+            <div class="info-box">
+                <p><strong>🔥 PyTorch Version:</strong> {torch.__version__}</p>
+                <p><strong>💻 Computing Device:</strong> {'🚀 CUDA GPU Acceleration' if torch.cuda.is_available() else '🖥️ CPU Processing'}</p>
+                <p><strong>🌐 Streamlit Version:</strong> {st.__version__}</p>
+                <p><strong>🧠 Medical VQA Model:</strong> sharawy53/final_diploma_blip-med-rad-arabic</p>
+                <p><strong>🌍 Translation Service:</strong> Google Translator API</p>
+            </div>
+            ''', unsafe_allow_html=True)
+        except:
+            st.markdown('''
+            <div class="warning-box">
+                <p>⚠️ System information temporarily unavailable</p>
+            </div>
+            ''', unsafe_allow_html=True)
     
-    # Footer
-    st.markdown("""
-    <div class="footer">
-        <p>© 2023 MedVision AI | Medical Image Analysis System</p>
-        <p>For educational and research purposes only</p>
+    # Enhanced Footer
+    st.markdown("---")
+    st.markdown('''
+    <div class="medical-disclaimer">
+        <h4>🩺 Professional Medical Disclaimer</h4>
+        <p><strong>This is a demonstration application for educational and research purposes only.</strong></p>
+        <p>Always consult with qualified healthcare professionals for medical decisions, diagnosis, and treatment. AI-generated analysis should never replace professional medical judgment.</p>
+        <p style="text-align: center; margin-top: 1rem;">
+            <strong>© 2024 MediVision AI - Advancing Healthcare Through Technology</strong>
+        </p>
     </div>
-    """, unsafe_allow_html=True)
-    
-    st.markdown('</div>', unsafe_allow_html=True)  # Close main-container
+    ''', unsafe_allow_html=True)
 
 if __name__ == "__main__":
     main()
