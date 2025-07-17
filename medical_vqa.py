@@ -281,8 +281,6 @@ def main():
         st.session_state.question = ''
     if 'lang' not in st.session_state:
         st.session_state.lang = 'en'
-    if 'active_tab' not in st.session_state:
-        st.session_state.active_tab = 'analysis'
     
     # Modern Header
     st.markdown('''
@@ -293,39 +291,19 @@ def main():
     ''', unsafe_allow_html=True)
     
     # Navigation Tabs
-    st.markdown('''
-    <div class="content-container">
-        <div class="nav-tabs">
-            <div class="nav-tab %s" onclick="setTab('analysis')">🔬 Medical Analysis</div>
-            <div class="nav-tab %s" onclick="setTab('about')">ℹ️ About</div>
-        </div>
-    </div>
-    ''' % (
-        'active' if st.session_state.active_tab == 'analysis' else '',
-        'active' if st.session_state.active_tab == 'about' else ''
-    ), unsafe_allow_html=True)
-    
-    # JavaScript for tab switching
-    st.markdown("""
-    <script>
-    function setTab(tabName) {
-        window.parent.document.querySelector('body').dispatchEvent(
-            new CustomEvent('set-tab', {detail: tabName})
-        );
-    }
-    </script>
-    """, unsafe_allow_html=True)
-    
-    # Listen for tab change event
-    tab_changed = st.container()
-    if st.session_state.get('tab_event'):
-        st.session_state.active_tab = st.session_state.tab_event
-        st.experimental_rerun()
+    tabs = ["🔬 Medical Analysis", "ℹ️ About"]
+    active_tab = st.radio(
+        "Navigation:", 
+        tabs, 
+        horizontal=True, 
+        label_visibility="collapsed",
+        index=0
+    )
     
     # Main content container
     st.markdown('<div class="content-container">', unsafe_allow_html=True)
     
-    if st.session_state.active_tab == 'analysis':
+    if active_tab == "🔬 Medical Analysis":
         # Load models
         with st.spinner("🔄 Loading AI models..."):
             vqa_processor, vqa_model = load_medical_vqa_model()
@@ -510,7 +488,7 @@ def main():
         else:
             st.error("Failed to load AI models. Please try again later.")
     
-    elif st.session_state.active_tab == 'about':
+    elif active_tab == "ℹ️ About":
         st.markdown('''
         <div class="analysis-section">
             <h3>ℹ️ About MediVision AI</h3>
@@ -543,22 +521,6 @@ def main():
         ''', unsafe_allow_html=True)
     
     st.markdown('</div>', unsafe_allow_html=True)  # Close content-container
-
-# Tab change event handler
-def handle_tab_change():
-    if hasattr(st.session_state, 'tab_event'):
-        st.session_state.active_tab = st.session_state.tab_event
-        st.experimental_rerun()
-
-# Listen for tab change events
-if 'tab_event' not in st.session_state:
-    st.session_state.tab_event = 'analysis'
-
-# Register event handler
-st.browser.set_page_config(
-    page_title="MediVision AI",
-    on_page_change=handle_tab_change
-)
 
 if __name__ == "__main__":
     main()
