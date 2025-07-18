@@ -116,72 +116,62 @@ st.markdown("""
         border-left: 4px solid var(--primary-teal);
     }
     
-    /* Dual Language Question Grid */
-    .dual-question-grid {
+    /* Quick Questions - 2 columns layout with medical theme */
+    .quick-questions {
         display: grid;
-        grid-template-columns: 1fr 1fr;
-        gap: 1.5rem;
+        grid-template-columns: repeat(2, 1fr);
+        gap: 0.8rem;
         margin-bottom: 1.5rem;
     }
     
-    .language-section {
-        padding: 1rem;
-        border-radius: 0.75rem;
+    .question-btn {
         background: linear-gradient(to bottom right, #e0f2fe, #dbeafe);
         border: 1px solid #bae6fd;
-        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
-    }
-    
-    .arabic-section {
-        direction: rtl;
-        text-align: right;
-        background: linear-gradient(to bottom right, #f0fdf4, #dcfce7);
-        border: 1px solid #bbf7d0;
-    }
-    
-    .question-card {
-        background: white;
-        border: 1px solid #d1d5db;
         padding: 0.8rem;
         border-radius: 0.75rem;
         cursor: pointer;
         transition: all 0.3s ease;
         font-size: 0.95rem;
-        margin-bottom: 0.8rem;
+        text-align: center;
+        height: 100%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: #1e40af;
+        font-weight: 500;
         box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
         position: relative;
         overflow: hidden;
     }
     
-    .question-card:hover {
+    .question-btn:before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 0;
+        background: linear-gradient(to bottom right, var(--primary-blue), var(--primary-teal));
+        opacity: 0;
+        transition: all 0.3s ease;
+        z-index: 0;
+    }
+    
+    .question-btn:hover {
         transform: translateY(-3px);
         box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+        color: white;
         border-color: var(--primary-blue);
     }
     
-    .pulse-animation {
-        animation: pulse 2s infinite;
+    .question-btn:hover:before {
+        height: 100%;
+        opacity: 1;
     }
     
-    @keyframes pulse {
-        0% { transform: scale(1); }
-        50% { transform: scale(1.03); }
-        100% { transform: scale(1); }
-    }
-    
-    .animated-input {
-        transition: all 0.3s ease;
-        border: 1px solid #d1d5db;
-        border-radius: 0.5rem;
-        padding: 0.8rem;
-        width: 100%;
-        font-size: 1rem;
-    }
-    
-    .animated-input:focus {
-        border-color: var(--primary-blue);
-        box-shadow: 0 0 0 3px rgba(14, 165, 233, 0.2);
-        outline: none;
+    .question-btn span {
+        position: relative;
+        z-index: 1;
     }
     
     /* Result Boxes */
@@ -255,7 +245,7 @@ st.markdown("""
             flex-direction: column;
         }
         
-        .dual-question-grid {
+        .quick-questions {
             grid-template-columns: 1fr;
         }
     }
@@ -395,6 +385,8 @@ def main():
     # Initialize session state
     if 'question' not in st.session_state:
         st.session_state.question = ''
+    if 'lang' not in st.session_state:
+        st.session_state.lang = 'en'
     
     # Modern Header
     st.markdown('''
@@ -462,67 +454,66 @@ def main():
                 </div>
                 ''', unsafe_allow_html=True)
                 
-                # Dual Language Question Grid
-                st.markdown('<div class="dual-question-grid">', unsafe_allow_html=True)
+                # Language Selection
+                lang = st.radio(
+                    "Language:", 
+                    ["🇺🇸 English", "🇪🇬 العربية"],
+                    horizontal=True,
+                    index=0 if st.session_state.lang == 'en' else 1,
+                    key="lang_selector"
+                )
                 
-                # English Questions
-                st.markdown('<div class="language-section">', unsafe_allow_html=True)
-                st.markdown('<h4>English</h4>', unsafe_allow_html=True)
+                st.session_state.lang = 'en' if lang == "🇺🇸 English" else 'ar'
                 
-                english_questions = [
-                    "What abnormalities do you see?",
-                    "Is this medical scan normal or abnormal?",
-                    "Are there any signs of infection?",
-                    "What is your diagnostic assessment?"
-                ]
+                # Suggested Questions - Now in 2 columns with new style
+                questions = {
+                    "en": [
+                        "What abnormalities do you see?",
+                        "Are there any fractures visible?",
+                        "Is this result normal or abnormal?",
+                        "Describe the key medical findings",
+                        "Any signs of infection present?",
+                        "Is there a tumor or mass visible?",
+                        "What is your diagnostic assessment?",
+                        "Is there evidence of pneumonia?"
+                    ],
+                    "ar": [
+                        "ما هي التشوهات التي تراها؟",
+                        "هل هناك أي كسور مرئية؟",
+                        "هل هذه النتيجة طبيعية أم غير طبيعية؟",
+                        "صف النتائج الطبية الرئيسية",
+                        "هل هناك أي علامات للعدوى؟",
+                        "هل هناك ورم أو كتلة مرئية؟",
+                        "ما هو تقييمك التشخيصي؟",
+                        "هل هناك دليل على الالتهاب الرئوي؟"
+                    ]
+                }
                 
-                for i, q in enumerate(english_questions):
-                    btn_class = "question-card pulse-animation" if i == 0 else "question-card"
-                    st.markdown(f"""
-                    <div class="{btn_class}" onclick="this.nextElementSibling.firstChild.click()">
-                        <span>{q}</span>
-                    </div>
-                    <div style="display: none;">
-                        {st.button(q, key=f"q_en_{i}")}
-                    </div>
-                    """, unsafe_allow_html=True)
+                st.markdown("""
+                <div style="margin-bottom: 15px;">
+                    <strong style="font-size: 1.1rem; color: #1e40af;">Suggested Questions:</strong>
+                </div>
+                """, unsafe_allow_html=True)
                 
-                st.markdown('</div>', unsafe_allow_html=True)  # Close language-section
+                # Create a grid container for questions
+                st.markdown('<div class="quick-questions">', unsafe_allow_html=True)
                 
-                # Arabic Questions
-                st.markdown('<div class="language-section arabic-section">', unsafe_allow_html=True)
-                st.markdown('<h4 class="rtl-text">العربية</h4>', unsafe_allow_html=True)
+                # Display questions in 2 columns
+                lang_questions = questions[st.session_state.lang]
+                for i, q in enumerate(lang_questions):
+                    if st.button(q, key=f"q_{i}_{st.session_state.lang}"):
+                        st.session_state.question = q
                 
-                arabic_questions = [
-                    "هل هناك أي كسور مرئية؟",
-                    "صف النتائج الطبية الرئيسية",
-                    "هل هناك دليل على وجود ورم أو كتلة؟",
-                    "هل هناك علامات على التهاب رئوي أو مشاكل في الرئة؟"
-                ]
-                
-                for i, q in enumerate(arabic_questions):
-                    btn_class = "question-card pulse-animation" if i == 0 else "question-card"
-                    st.markdown(f"""
-                    <div class="{btn_class} rtl-text" onclick="this.nextElementSibling.firstChild.click()">
-                        <span>{q}</span>
-                    </div>
-                    <div style="display: none;">
-                        {st.button(q, key=f"q_ar_{i}")}
-                    </div>
-                    """, unsafe_allow_html=True)
-                
-                st.markdown('</div>', unsafe_allow_html=True)  # Close arabic-section
-                st.markdown('</div>', unsafe_allow_html=True)  # Close dual-question-grid
+                st.markdown('</div>', unsafe_allow_html=True)
                 
                 # Custom Question
-                st.markdown('<h4 style="margin-top: 1.5rem; margin-bottom: 0.5rem;">Your Custom Question:</h4>', unsafe_allow_html=True)
+                placeholder = "Type your medical question here..." if st.session_state.lang == 'en' else "اكتب سؤالك الطبي هنا..."
                 question = st.text_area(
                     "Your Question:", 
                     value=st.session_state.get('question', ''),
-                    placeholder="Type your medical question in English or Arabic...",
+                    placeholder=placeholder,
                     height=120,
-                    label_visibility="collapsed",
-                    key="custom_question"
+                    label_visibility="collapsed"
                 )
                 
                 # Analyze Button
@@ -532,19 +523,25 @@ def main():
                     elif not question:
                         st.warning("Please enter a question about the medical image")
                     else:
-                        # Detect language of question
+                        # Translate question if needed
                         question_is_arabic = is_arabic(question)
                         
-                        if question_is_arabic:
-                            # The question is in Arabic
+                        if st.session_state.lang == 'en' and question_is_arabic:
+                            display_question_en, _ = translate_text(question, "ar", "en")
                             model_question = question
                             display_question_ar = question
-                            display_question_en, _ = translate_text(question, "ar", "en")
-                        else:
-                            # The question is in English
+                        elif st.session_state.lang == 'en' and not question_is_arabic:
                             model_question, _ = translate_text(question, "en", "ar")
                             display_question_en = question
                             display_question_ar = model_question
+                        elif st.session_state.lang == 'ar' and not question_is_arabic:
+                            model_question, _ = translate_text(question, "en", "ar")
+                            display_question_en = question
+                            display_question_ar = model_question
+                        else:
+                            display_question_en, _ = translate_text(question, "ar", "en")
+                            model_question = question
+                            display_question_ar = question
                         
                         # Add medical context
                         contextualized_question = get_medical_context(model_question)
