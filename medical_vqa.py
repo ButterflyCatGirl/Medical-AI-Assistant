@@ -811,24 +811,36 @@ def main():
         col1, col2 = st.columns(2)
         
         with col1:
-            st.markdown(f'''
-            <div class="card">
-                <h3>{T["features_title"]}</h3>
-                <ul style="list-style-type: none; padding-left: 0; margin-top: 1rem;">
-                    {''.join(f'<li style="margin-bottom: 1.2rem; padding-left: 1.5rem; position: relative;"><span style="position: absolute; left: 0; color: var(--primary-blue);">→</span>{feature}</li>' for feature in T["features"])}
+            st.subheader("🔍 Core Features")
+            st.markdown("""
+            <div style="background: linear-gradient(to bottom right, #e0f2fe, #dbeafe); 
+                        padding: 1.2rem; border-radius: 0.8rem; margin-bottom: 1.5rem;">
+                <ul style="list-style-type: none; padding-left: 0;">
+                    <li style="margin-bottom: 0.8rem;">🩻 <strong>X-ray, CT, MRI & Ultrasound analysis</strong></li>
+                    <li style="margin-bottom: 0.8rem;">🌍 <strong>English/Arabic bilingual support</strong></li>
+                    <li style="margin-bottom: 0.8rem;">🧠 <strong>Specialized medical AI models</strong></li>
+                    <li style="margin-bottom: 0.8rem;">🎯 <strong>Context-aware understanding</strong></li>
+                    <li style="margin-bottom: 0.8rem;">💬 <strong>Natural language interaction</strong></li>
+                    <li>📊 <strong>Detailed medical insights</strong></li>
                 </ul>
             </div>
-            ''', unsafe_allow_html=True)
+            """, unsafe_allow_html=True)
             
         with col2:
-            st.markdown(f'''
-            <div class="card">
-                <h3>{T["tech_title"]}</h3>
-                <ul style="list-style-type: none; padding-left: 0; margin-top: 1rem;">
-                    {''.join(f'<li style="margin-bottom: 1.2rem; padding-left: 1.5rem; position: relative;"><span style="position: absolute; left: 0; color: var(--primary-blue);">→</span>{tech}</li>' for tech in T["tech"])}
+            st.subheader("🛠️ Technology")
+            st.markdown("""
+            <div style="background: linear-gradient(to bottom right, #ede9fe, #e0e7ff); 
+                        padding: 1.2rem; border-radius: 0.8rem; margin-bottom: 1.5rem;">
+                <ul style="list-style-type: none; padding-left: 0;">
+                    <li style="margin-bottom: 0.8rem;">🤖 <strong>BLIP Vision-Language Model</strong></li>
+                    <li style="margin-bottom: 0.8rem;">🔥 <strong>PyTorch Deep Learning</strong></li>
+                    <li style="margin-bottom: 0.8rem;">🌐 <strong>Google Translator API</strong></li>
+                    <li style="margin-bottom: 0.8rem;">🚀 <strong>Streamlit Framework</strong></li>
+                    <li style="margin-bottom: 0.8rem;">🐍 <strong>Python Backend</strong></li>
+                    <li>💾 <strong>Hugging Face Transformers</strong></li>
                 </ul>
             </div>
-            ''', unsafe_allow_html=True)
+            """, unsafe_allow_html=True)
         
         # Medical disclaimer
         st.markdown(f'''
