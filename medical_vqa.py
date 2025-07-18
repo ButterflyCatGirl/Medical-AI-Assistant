@@ -117,10 +117,10 @@ st.markdown("""
         border-left: 4px solid var(--primary-teal);
     }
     
-    /* Quick Questions - 4 columns layout with medical theme */
+    /* Quick Questions - 2 columns layout with medical theme */
     .quick-questions {
         display: grid;
-        grid-template-columns: repeat(4, 1fr);
+        grid-template-columns: repeat(2, 1fr);
         gap: 0.8rem;
         margin-bottom: 1.5rem;
     }
@@ -253,7 +253,7 @@ st.markdown("""
     /* Responsive Design */
     @media (max-width: 992px) {
         .quick-questions {
-            grid-template-columns: repeat(2, 1fr);
+            grid-template-columns: repeat(1, 1fr);
         }
     }
     
@@ -273,10 +273,6 @@ st.markdown("""
         
         .main-columns {
             flex-direction: column;
-        }
-        
-        .quick-questions {
-            grid-template-columns: 1fr;
         }
     }
     
@@ -591,7 +587,7 @@ def main():
                 </div>
                 ''', unsafe_allow_html=True)
                 
-                # Suggested Questions - Now in 4 columns with new style
+                # Suggested Questions - Now in 2 columns with 4 rows
                 questions = {
                     "en": [
                         "What abnormalities do you see?",
@@ -621,10 +617,10 @@ def main():
                 </div>
                 """, unsafe_allow_html=True)
                 
-                # Create a grid container for questions
+                # Create a grid container for questions (2 columns)
                 st.markdown('<div class="quick-questions">', unsafe_allow_html=True)
                 
-                # Display questions in 4 columns (2 rows with 4 questions each)
+                # Display questions in 2 columns (4 rows)
                 lang_questions = questions[st.session_state.lang]
                 for i, q in enumerate(lang_questions):
                     if st.button(q, key=f"q_{i}_{st.session_state.lang}"):
