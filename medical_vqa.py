@@ -117,10 +117,10 @@ st.markdown("""
         border-left: 4px solid var(--primary-teal);
     }
     
-    /* Quick Questions - 2 columns layout with medical theme */
+    /* Quick Questions - 4 columns layout with medical theme */
     .quick-questions {
         display: grid;
-        grid-template-columns: repeat(2, 1fr);
+        grid-template-columns: repeat(4, 1fr);
         gap: 0.8rem;
         margin-bottom: 1.5rem;
     }
@@ -128,11 +128,11 @@ st.markdown("""
     .question-btn {
         background: linear-gradient(to bottom right, #e0f2fe, #dbeafe);
         border: 1px solid #bae6fd;
-        padding: 0.8rem;
+        padding: 0.8rem 0.5rem;
         border-radius: 0.75rem;
         cursor: pointer;
         transition: all 0.3s ease;
-        font-size: 0.95rem;
+        font-size: 0.9rem;
         text-align: center;
         height: 100%;
         display: flex;
@@ -251,6 +251,12 @@ st.markdown("""
     }
     
     /* Responsive Design */
+    @media (max-width: 992px) {
+        .quick-questions {
+            grid-template-columns: repeat(2, 1fr);
+        }
+    }
+    
     @media (max-width: 768px) {
         .main-header h1 {
             font-size: 1.8rem;
@@ -531,7 +537,7 @@ def main():
     
     if active_tab == T["tab_analysis"]:
         # Load models
-        with st.spinner("🔄 Loading AI models..."):
+        with st.spinner("🔄 Loading AI models..." if st.session_state.lang == 'en' else "🔄 جاري تحميل نماذج الذكاء الاصطناعي..."):
             vqa_processor, vqa_model = load_medical_vqa_model()
         
         if vqa_processor and vqa_model:
@@ -567,14 +573,7 @@ def main():
                     ''', unsafe_allow_html=True)
             
             with col2:
-                # Analysis Section
-                st.markdown(f'''
-                <div class="analysis-section">
-                    <h3>{T["analysis_title"]}</h3>
-                </div>
-                ''', unsafe_allow_html=True)
-                
-                # Language Selection
+                # Language Selection - تم نقله للأعلى
                 lang = st.radio(
                     "Language:", 
                     ["🇺🇸 English", "🇪🇬 العربية"],
@@ -585,7 +584,14 @@ def main():
                 
                 st.session_state.lang = 'en' if lang == "🇺🇸 English" else 'ar'
                 
-                # Suggested Questions - Now in 2 columns with new style
+                # Analysis Section
+                st.markdown(f'''
+                <div class="analysis-section">
+                    <h3>{T["analysis_title"]}</h3>
+                </div>
+                ''', unsafe_allow_html=True)
+                
+                # Suggested Questions - Now in 4 columns with new style
                 questions = {
                     "en": [
                         "What abnormalities do you see?",
@@ -618,7 +624,7 @@ def main():
                 # Create a grid container for questions
                 st.markdown('<div class="quick-questions">', unsafe_allow_html=True)
                 
-                # Display questions in 2 columns
+                # Display questions in 4 columns (2 rows with 4 questions each)
                 lang_questions = questions[st.session_state.lang]
                 for i, q in enumerate(lang_questions):
                     if st.button(q, key=f"q_{i}_{st.session_state.lang}"):
