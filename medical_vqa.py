@@ -166,10 +166,10 @@ st.markdown("""
         color: white;
     }
     
-    /* Quick Questions */
+    /* Quick Questions - UPDATED COLORS */
     .question-btn {
-        background: linear-gradient(to bottom right, var(--light-blue), #dbeafe);
-        border: 1px solid var(--medium-gray);
+        background: linear-gradient(to bottom right, #e0f0ff, #d1f2eb); /* Light Nile blue + light green */
+        border: 1px solid #b8e0d2; /* Soft green border */
         padding: 1rem;
         border-radius: 0.9rem;
         cursor: pointer;
@@ -180,7 +180,7 @@ st.markdown("""
         display: flex;
         align-items: center;
         justify-content: center;
-        color: var(--dark-blue);
+        color: #1a6e8a; /* Deep blue text */
         font-weight: 500;
         box-shadow: 0 3px 6px rgba(0, 0, 0, 0.03);
         position: relative;
@@ -196,7 +196,7 @@ st.markdown("""
         left: 0;
         width: 100%;
         height: 0;
-        background: linear-gradient(to bottom right, var(--primary-blue), var(--secondary-green));
+        background: linear-gradient(135deg, var(--primary-blue) 0%, var(--secondary-green) 100%); /* Same as header */
         opacity: 0;
         transition: all 0.3s ease;
         z-index: 0;
@@ -384,6 +384,7 @@ st.markdown("""
 </style>
 """, unsafe_allow_html=True)
 
+# باقي الكود يبقى كما هو دون تغيير
 # Cache models globally
 @st.cache_resource(show_spinner=False)
 def load_medical_vqa_model():
