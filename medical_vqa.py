@@ -117,18 +117,10 @@ st.markdown("""
         border-left: 4px solid var(--primary-teal);
     }
     
-    /* Quick Questions - 2 columns layout with medical theme */
-    .quick-questions {
-        display: grid;
-        grid-template-columns: repeat(2, 1fr);
-        gap: 0.8rem;
-        margin-bottom: 1.5rem;
-    }
-    
     .question-btn {
         background: linear-gradient(to bottom right, #e0f2fe, #dbeafe);
         border: 1px solid #bae6fd;
-        padding: 0.8rem 0.5rem;
+        padding: 0.8rem;
         border-radius: 0.75rem;
         cursor: pointer;
         transition: all 0.3s ease;
@@ -143,6 +135,8 @@ st.markdown("""
         box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
         position: relative;
         overflow: hidden;
+        width: 100%;
+        margin-bottom: 0.8rem;
     }
     
     .question-btn:before {
@@ -251,12 +245,6 @@ st.markdown("""
     }
     
     /* Responsive Design */
-    @media (max-width: 992px) {
-        .quick-questions {
-            grid-template-columns: repeat(1, 1fr);
-        }
-    }
-    
     @media (max-width: 768px) {
         .main-header h1 {
             font-size: 1.8rem;
@@ -273,6 +261,11 @@ st.markdown("""
         
         .main-columns {
             flex-direction: column;
+        }
+        
+        .question-btn {
+            font-size: 0.85rem;
+            padding: 0.7rem 0.5rem;
         }
     }
     
@@ -617,17 +610,21 @@ def main():
                 </div>
                 """, unsafe_allow_html=True)
                 
-                # Create a grid container for questions (2 columns)
-                st.markdown('<div class="quick-questions">', unsafe_allow_html=True)
+                # عرض الأسئلة في عمودين (4 صفوف)
+                col_left, col_right = st.columns(2)
                 
-                # Display questions in 2 columns (4 rows)
-                lang_questions = questions[st.session_state.lang]
-                for i, q in enumerate(lang_questions):
-                    if st.button(q, key=f"q_{i}_{st.session_state.lang}"):
-                        st.session_state.question = q
+                with col_left:
+                    for i in range(0, 8, 2):
+                        q = questions[st.session_state.lang][i]
+                        if st.button(q, key=f"q_left_{i}_{st.session_state.lang}", use_container_width=True):
+                            st.session_state.question = q
                 
-                st.markdown('</div>', unsafe_allow_html=True)
-                
+                with col_right:
+                    for i in range(1, 8, 2):
+                        q = questions[st.session_state.lang][i]
+                        if st.button(q, key=f"q_right_{i}_{st.session_state.lang}", use_container_width=True):
+                            st.session_state.question = q
+
                 # Custom Question
                 placeholder = T["custom_question_placeholder"]
                 question = st.text_area(
