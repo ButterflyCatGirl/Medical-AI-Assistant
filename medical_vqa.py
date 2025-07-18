@@ -14,11 +14,12 @@ st.set_page_config(
     initial_sidebar_state="collapsed"
 )
 
-# Modern Medical Theme CSS Design
+# Modern Medical Theme CSS Design with RTL support
 st.markdown("""
 <style>
     /* Import Google Fonts */
     @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+    @import url('https://fonts.googleapis.com/css2?family=Tajawal:wght@300;400;500;700&display=swap');
     
     /* Root Variables - Medical Theme */
     :root {
@@ -203,7 +204,8 @@ st.markdown("""
     .rtl-text {
         direction: rtl;
         text-align: right;
-        font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        font-family: 'Tajawal', 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        font-size: 1.1rem;
     }
     
     /* Language Badges */
@@ -224,6 +226,28 @@ st.markdown("""
     .arabic-badge {
         background: linear-gradient(to right, var(--primary-teal), var(--success-green));
         color: white;
+    }
+    
+    /* Arabic UI Elements */
+    .arabic-ui .rtl-text,
+    .arabic-ui .section-title,
+    .arabic-ui .translation-item,
+    .arabic-ui .question-btn,
+    .arabic-ui .nav-tab,
+    .arabic-ui .main-header h1,
+    .arabic-ui .main-header p,
+    .arabic-ui .image-section h3,
+    .arabic-ui .analysis-section h3,
+    .arabic-ui .result-box h3,
+    .arabic-ui .translation-item strong,
+    .arabic-ui .language-badge {
+        direction: rtl;
+        text-align: right;
+        font-family: 'Tajawal', 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    }
+    
+    .arabic-ui .nav-tabs {
+        direction: rtl;
     }
     
     /* Responsive Design */
@@ -381,6 +405,96 @@ def get_medical_context(question):
             return f"In the context of {context}: {question}"
     return question
 
+# النصوص باللغتين
+texts = {
+    "en": {
+        "app_title": "🩺 MediVision AI",
+        "app_subtitle": "Advanced Medical Image Analysis & Multilingual Support",
+        "tab_analysis": "🔬 Medical Analysis",
+        "tab_about": "ℹ️ About",
+        "upload_title": "📤 Upload Medical Image",
+        "upload_prompt": "Choose a medical image...",
+        "image_info_title": "📊 Image Information",
+        "dimensions": "📏 Dimensions",
+        "size": "📁 Size",
+        "format": "🎨 Format",
+        "analysis_title": "❓ Ask Medical Questions",
+        "suggested_questions": "Suggested Questions:",
+        "custom_question_placeholder": "Type your medical question here...",
+        "analyze_button": "🔬 Analyze Medical Image",
+        "results_title": "🔍 Medical Analysis Results",
+        "question_label": "Question",
+        "analysis_label": "Analysis",
+        "disclaimer_title": "⚠️ Medical Disclaimer",
+        "disclaimer_content": "This AI analysis is for educational purposes only. Always consult with qualified healthcare professionals for medical decisions. AI responses may contain errors and should not replace professional medical judgment.",
+        "about_title": "ℹ️ About MediVision AI",
+        "about_content": "Advanced medical image analysis platform combining cutting-edge AI technologies with multilingual support for healthcare professionals and medical students worldwide.",
+        "features_title": "🔍 Core Features",
+        "features": [
+            "🩻 X-ray, CT, MRI & Ultrasound analysis",
+            "🌍 English/Arabic bilingual support",
+            "🧠 Specialized medical AI models",
+            "🎯 Context-aware understanding",
+            "💬 Natural language interaction",
+            "📊 Detailed medical insights"
+        ],
+        "tech_title": "🛠️ Technology",
+        "tech": [
+            "🤖 BLIP Vision-Language Model",
+            "🔥 PyTorch Deep Learning",
+            "🌐 Google Translator API",
+            "🚀 Streamlit Framework",
+            "🐍 Python Backend",
+            "💾 Hugging Face Transformers"
+        ],
+        "professional_disclaimer": "🩺 Professional Medical Disclaimer",
+        "professional_content": "This is a demonstration application for educational and research purposes only. Always consult with qualified healthcare professionals for medical decisions, diagnosis, and treatment. AI-generated analysis should never replace professional medical judgment."
+    },
+    "ar": {
+        "app_title": "🩺 رؤية طبية AI",
+        "app_subtitle": "تحليل متقدم للصور الطبية مع دعم متعدد اللغات",
+        "tab_analysis": "🔬 التحليل الطبي",
+        "tab_about": "ℹ️ حول التطبيق",
+        "upload_title": "📤 رفع صورة طبية",
+        "upload_prompt": "اختر صورة طبية...",
+        "image_info_title": "📊 معلومات الصورة",
+        "dimensions": "📏 الأبعاد",
+        "size": "📁 الحجم",
+        "format": "🎨 الصيغة",
+        "analysis_title": "❓ اطرح أسئلة طبية",
+        "suggested_questions": "أسئلة مقترحة:",
+        "custom_question_placeholder": "اكتب سؤالك الطبي هنا...",
+        "analyze_button": "🔬 تحليل الصورة الطبية",
+        "results_title": "🔍 نتائج التحليل الطبي",
+        "question_label": "السؤال",
+        "analysis_label": "التحليل",
+        "disclaimer_title": "⚠️ تنبيه طبي",
+        "disclaimer_content": "هذا التحليل بالذكاء الاصطناعي لأغراض تعليمية فقط. استشر دائمًا متخصصي الرعاية الصحية المؤهلين لاتخاذ القرارات الطبية. قد تحتوي استجابات الذكاء الاصطناعي على أخطاء ولا ينبغي أن تحل محل الحكم الطبي المهني.",
+        "about_title": "ℹ️ حول تطبيق رؤية طبية AI",
+        "about_content": "منصة تحليل الصور الطبية المتقدمة التي تجمع بين أحدث تقنيات الذكاء الاصطناعي مع الدعم متعدد اللغات لمتخصصي الرعاية الصحية وطلاب الطب في جميع أنحاء العالم.",
+        "features_title": "🔍 الميزات الأساسية",
+        "features": [
+            "🩻 تحليل صور الأشعة السينية، التصوير المقطعي، الرنين المغناطيسي والموجات فوق الصوتية",
+            "🌍 دعم ثنائي اللغة (الإنجليزية/العربية)",
+            "🧠 نماذج ذكاء اصطناعي طبية متخصصة",
+            "🎯 فهم واعٍ بالسياق",
+            "💬 تفاعل بلغة طبيعية",
+            "📊 رؤى طبية مفصلة"
+        ],
+        "tech_title": "🛠️ التقنية",
+        "tech": [
+            "🤖 نموذج BLIP للرؤية واللغة",
+            "🔥 تعلم عميق باستخدام PyTorch",
+            "🌐 واجهة برمجة تطبيقات الترجمة من جوجل",
+            "🚀 إطار عمل Streamlit",
+            "🐍 بايثون في الخلفية",
+            "💾 Hugging Face Transformers"
+        ],
+        "professional_disclaimer": "🩺 تنبيه طبي احترافي",
+        "professional_content": "هذا تطبيق توضيحي لأغراض تعليمية وبحثية فقط. استشر دائمًا متخصصي الرعاية الصحية المؤهلين لاتخاذ القرارات الطبية والتشخيص والعلاج. لا ينبغي أبدًا أن يحل التحليل الذي يولده الذكاء الاصطناعي محل الحكم الطبي المهني."
+    }
+}
+
 def main():
     # Initialize session state
     if 'question' not in st.session_state:
@@ -388,16 +502,22 @@ def main():
     if 'lang' not in st.session_state:
         st.session_state.lang = 'en'
     
+    # اختصار للنصوص
+    T = texts[st.session_state.lang]
+    
+    # تحديد الفئة حسب اللغة
+    ui_class = "arabic-ui" if st.session_state.lang == 'ar' else ""
+    
     # Modern Header
-    st.markdown('''
+    st.markdown(f'''
     <div class="main-header">
-        <h1>🩺 MediVision AI</h1>
-        <p>Advanced Medical Image Analysis & Multilingual Support</p>
+        <h1>{T["app_title"]}</h1>
+        <p>{T["app_subtitle"]}</p>
     </div>
     ''', unsafe_allow_html=True)
     
     # Navigation Tabs
-    tabs = ["🔬 Medical Analysis", "ℹ️ About"]
+    tabs = [T["tab_analysis"], T["tab_about"]]
     active_tab = st.radio(
         "Navigation:", 
         tabs, 
@@ -407,9 +527,9 @@ def main():
     )
     
     # Main content container
-    st.markdown('<div class="content-container">', unsafe_allow_html=True)
+    st.markdown(f'<div class="content-container {ui_class}">', unsafe_allow_html=True)
     
-    if active_tab == "🔬 Medical Analysis":
+    if active_tab == T["tab_analysis"]:
         # Load models
         with st.spinner("🔄 Loading AI models..."):
             vqa_processor, vqa_model = load_medical_vqa_model()
@@ -420,14 +540,14 @@ def main():
             
             with col1:
                 # Image Upload Section
-                st.markdown('''
+                st.markdown(f'''
                 <div class="image-section">
-                    <h3>📤 Upload Medical Image</h3>
+                    <h3>{T["upload_title"]}</h3>
                 </div>
                 ''', unsafe_allow_html=True)
                 
                 uploaded_file = st.file_uploader(
-                    "Choose a medical image...", 
+                    T["upload_prompt"], 
                     type=["jpg", "jpeg", "png", "bmp"],
                     label_visibility="collapsed"
                 )
@@ -439,18 +559,18 @@ def main():
                     # Image info
                     st.markdown(f'''
                     <div class="image-section">
-                        <h3>📊 Image Information</h3>
-                        <p><strong>📏 Dimensions:</strong> {image.size[0]} x {image.size[1]} pixels</p>
-                        <p><strong>📁 Size:</strong> {round(uploaded_file.size / 1024, 1)} KB</p>
-                        <p><strong>🎨 Format:</strong> {uploaded_file.type}</p>
+                        <h3>{T["image_info_title"]}</h3>
+                        <p><strong>{T["dimensions"]}:</strong> {image.size[0]} x {image.size[1]} pixels</p>
+                        <p><strong>{T["size"]}:</strong> {round(uploaded_file.size / 1024, 1)} KB</p>
+                        <p><strong>{T["format"]}:</strong> {uploaded_file.type}</p>
                     </div>
                     ''', unsafe_allow_html=True)
             
             with col2:
                 # Analysis Section
-                st.markdown('''
+                st.markdown(f'''
                 <div class="analysis-section">
-                    <h3>❓ Ask Medical Questions</h3>
+                    <h3>{T["analysis_title"]}</h3>
                 </div>
                 ''', unsafe_allow_html=True)
                 
@@ -489,9 +609,9 @@ def main():
                     ]
                 }
                 
-                st.markdown("""
+                st.markdown(f"""
                 <div style="margin-bottom: 15px;">
-                    <strong style="font-size: 1.1rem; color: #1e40af;">Suggested Questions:</strong>
+                    <strong style="font-size: 1.1rem; color: #1e40af;">{T["suggested_questions"]}</strong>
                 </div>
                 """, unsafe_allow_html=True)
                 
@@ -507,7 +627,7 @@ def main():
                 st.markdown('</div>', unsafe_allow_html=True)
                 
                 # Custom Question
-                placeholder = "Type your medical question here..." if st.session_state.lang == 'en' else "اكتب سؤالك الطبي هنا..."
+                placeholder = T["custom_question_placeholder"]
                 question = st.text_area(
                     "Your Question:", 
                     value=st.session_state.get('question', ''),
@@ -517,11 +637,11 @@ def main():
                 )
                 
                 # Analyze Button
-                if st.button("🔬 Analyze Medical Image", type="primary", use_container_width=True):
+                if st.button(T["analyze_button"], type="primary", use_container_width=True):
                     if uploaded_file is None:
-                        st.warning("Please upload a medical image first")
+                        st.warning("Please upload a medical image first" if st.session_state.lang == 'en' else "يرجى رفع صورة طبية أولاً")
                     elif not question:
-                        st.warning("Please enter a question about the medical image")
+                        st.warning("Please enter a question about the medical image" if st.session_state.lang == 'en' else "يرجى إدخال سؤال حول الصورة الطبية")
                     else:
                         # Translate question if needed
                         question_is_arabic = is_arabic(question)
@@ -547,27 +667,27 @@ def main():
                         contextualized_question = get_medical_context(model_question)
                         
                         # Analyze image
-                        with st.spinner("🧠 Analyzing your medical image..."):
+                        with st.spinner("🧠 Analyzing your medical image..." if st.session_state.lang == 'en' else "🧠 جاري تحليل صورتك الطبية..."):
                             arabic_answer = analyze_medical_image(image, contextualized_question, vqa_processor, vqa_model)
                         
                         # Ensure answer is in Arabic
                         arabic_answer_display, arabic_translated = ensure_arabic_answer(arabic_answer)
                         
                         # Translate to English
-                        with st.spinner("🌐 Translating results..."):
+                        with st.spinner("🌐 Translating results..." if st.session_state.lang == 'en' else "🌐 جاري ترجمة النتائج..."):
                             english_answer, _ = translate_text(arabic_answer, "ar", "en")
                         
                         # Display results
-                        st.markdown('''
+                        st.markdown(f'''
                         <div class="result-box">
-                            <h3>🔍 Medical Analysis Results</h3>
+                            <h3>{T["results_title"]}</h3>
                         </div>
                         ''', unsafe_allow_html=True)
                         
                         # Question display
                         st.markdown(f'''
                         <div class="translation-item">
-                            <strong>Question:</strong> 
+                            <strong>{T["question_label"]}:</strong> 
                             {display_question_en}
                             <span class="language-badge english-badge">EN</span>
                         </div>
@@ -575,7 +695,7 @@ def main():
                         
                         st.markdown(f'''
                         <div class="translation-item rtl-text">
-                            <strong>السؤال:</strong> 
+                            <strong>{T["question_label"]}:</strong> 
                             {display_question_ar}
                             <span class="language-badge arabic-badge">AR</span>
                         </div>
@@ -584,7 +704,7 @@ def main():
                         # Answer display
                         st.markdown(f'''
                         <div class="translation-item">
-                            <strong>Analysis:</strong> 
+                            <strong>{T["analysis_label"]}:</strong> 
                             {english_answer}
                             <span class="language-badge english-badge">EN</span>
                         </div>
@@ -592,30 +712,27 @@ def main():
                         
                         st.markdown(f'''
                         <div class="translation-item rtl-text">
-                            <strong>التحليل:</strong> 
+                            <strong>{T["analysis_label"]}:</strong> 
                             {arabic_answer_display}
                             <span class="language-badge arabic-badge">AR</span>
                         </div>
                         ''', unsafe_allow_html=True)
                         
                         # Medical disclaimer
-                        st.info("""
-                        **⚠️ Medical Disclaimer**  
-                        This AI analysis is for educational purposes only. Always consult with qualified healthcare 
-                        professionals for medical decisions. AI responses may contain errors and should not replace 
-                        professional medical judgment.
+                        st.info(f"""
+                        **{T["disclaimer_title"]}**  
+                        {T["disclaimer_content"]}
                         """)
         
         else:
-            st.error("Failed to load AI models. Please try again later.")
+            st.error("Failed to load AI models. Please try again later." if st.session_state.lang == 'en' else "فشل تحميل نماذج الذكاء الاصطناعي. يرجى المحاولة لاحقًا.")
     
-    elif active_tab == "ℹ️ About":
+    elif active_tab == T["tab_about"]:
         # About section
-        st.markdown('''
+        st.markdown(f'''
         <div class="analysis-section">
-            <h3>ℹ️ About MediVision AI</h3>
-            <p>Advanced medical image analysis platform combining cutting-edge AI technologies with 
-            multilingual support for healthcare professionals and medical students worldwide.</p>
+            <h3>{T["about_title"]}</h3>
+            <p>{T["about_content"]}</p>
         </div>
         ''', unsafe_allow_html=True)
         
@@ -623,43 +740,31 @@ def main():
         col1, col2 = st.columns(2)
         
         with col1:
-            st.subheader("🔍 Core Features")
-            st.markdown("""
+            st.subheader(T["features_title"])
+            st.markdown(f"""
             <div style="background: linear-gradient(to bottom right, #e0f2fe, #dbeafe); 
                         padding: 1.2rem; border-radius: 0.8rem; margin-bottom: 1.5rem;">
                 <ul style="list-style-type: none; padding-left: 0;">
-                    <li style="margin-bottom: 0.8rem;">🩻 <strong>X-ray, CT, MRI & Ultrasound analysis</strong></li>
-                    <li style="margin-bottom: 0.8rem;">🌍 <strong>English/Arabic bilingual support</strong></li>
-                    <li style="margin-bottom: 0.8rem;">🧠 <strong>Specialized medical AI models</strong></li>
-                    <li style="margin-bottom: 0.8rem;">🎯 <strong>Context-aware understanding</strong></li>
-                    <li style="margin-bottom: 0.8rem;">💬 <strong>Natural language interaction</strong></li>
-                    <li>📊 <strong>Detailed medical insights</strong></li>
+                    {''.join(f'<li style="margin-bottom: 0.8rem;">{feature}</li>' for feature in T["features"])}
                 </ul>
             </div>
             """, unsafe_allow_html=True)
             
         with col2:
-            st.subheader("🛠️ Technology")
-            st.markdown("""
+            st.subheader(T["tech_title"])
+            st.markdown(f"""
             <div style="background: linear-gradient(to bottom right, #ede9fe, #e0e7ff); 
                         padding: 1.2rem; border-radius: 0.8rem; margin-bottom: 1.5rem;">
                 <ul style="list-style-type: none; padding-left: 0;">
-                    <li style="margin-bottom: 0.8rem;">🤖 <strong>BLIP Vision-Language Model</strong></li>
-                    <li style="margin-bottom: 0.8rem;">🔥 <strong>PyTorch Deep Learning</strong></li>
-                    <li style="margin-bottom: 0.8rem;">🌐 <strong>Google Translator API</strong></li>
-                    <li style="margin-bottom: 0.8rem;">🚀 <strong>Streamlit Framework</strong></li>
-                    <li style="margin-bottom: 0.8rem;">🐍 <strong>Python Backend</strong></li>
-                    <li>💾 <strong>Hugging Face Transformers</strong></li>
+                    {''.join(f'<li style="margin-bottom: 0.8rem;">{tech}</li>' for tech in T["tech"])}
                 </ul>
             </div>
             """, unsafe_allow_html=True)
         
         # Medical disclaimer
-        st.info("""
-        **🩺 Professional Medical Disclaimer**  
-        This is a demonstration application for educational and research purposes only.  
-        Always consult with qualified healthcare professionals for medical decisions, diagnosis, and treatment. 
-        AI-generated analysis should never replace professional medical judgment.
+        st.info(f"""
+        **{T["professional_disclaimer"]}**  
+        {T["professional_content"]}
         """)
     
     st.markdown('</div>', unsafe_allow_html=True)  # Close content-container
