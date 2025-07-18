@@ -11,4 +11,4 @@ protobuf>=4.25.1
 tokenizers>=0.15.0
 huggingface-hub>=0.19.4
 sentence-transformers>=2.2.2
-deep-translator<=1.11.4
+deep-translator>=1.11.4
