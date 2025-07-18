@@ -501,8 +501,15 @@ def main():
                 # Display questions in 2 columns
                 lang_questions = questions[st.session_state.lang]
                 for i, q in enumerate(lang_questions):
-                    if st.button(q, key=f"q_{i}_{st.session_state.lang}"):
-                        st.session_state.question = q
+                    # Use markdown to create custom button with hover effect
+                    st.markdown(f"""
+                    <div class="question-btn" onclick="this.nextElementSibling.firstChild.click()">
+                        <span>{q}</span>
+                    </div>
+                    <div style="display: none;">
+                        {st.button(q, key=f"q_{i}_{st.session_state.lang}")}
+                    </div>
+                    """, unsafe_allow_html=True)
                 
                 st.markdown('</div>', unsafe_allow_html=True)
                 
