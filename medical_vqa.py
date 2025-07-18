@@ -15,10 +15,372 @@ st.set_page_config(
     initial_sidebar_state="collapsed"
 )
 
-# Modern Medical Theme CSS Design with RTL support
+# Modern E-Health Theme CSS Design with RTL support
 st.markdown("""
 <style>
-    /* ... (CSS styles remain the same) ... */
+    /* Import Google Fonts */
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+    @import url('https://fonts.googleapis.com/css2?family=Tajawal:wght@300;400;500;700&display=swap');
+    
+    /* Root Variables - E-Health Theme */
+    :root {
+        --primary-blue: #1a73e8;      /* Deep professional blue */
+        --primary-teal: #00bcd4;      /* Medical teal */
+        --secondary-green: #34a853;   /* Health green */
+        --accent-orange: #fbbc05;     /* Warm accent */
+        --light-blue: #e8f0fe;        /* Light background blue */
+        --success-green: #34a853;     /* Success green */
+        --warning-yellow: #fbbc05;    /* Warning yellow */
+        --error-red: #ea4335;         /* Error red */
+        --dark-blue: #174ea6;         /* Dark blue */
+        --light-gray: #f8f9fa;        /* Light gray */
+        --medium-gray: #dadce0;       /* Medium gray */
+        --dark-gray: #202124;         /* Dark text */
+        --white: #ffffff;             /* White */
+        --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.1);
+    }
+    
+    /* Global Styles */
+    * {
+        font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+    }
+    
+    body {
+        background-color: #f8fafc;
+        color: var(--dark-gray);
+    }
+    
+    /* Header Styles */
+    .main-header {
+        background: linear-gradient(135deg, var(--primary-blue) 0%, var(--secondary-green) 100%);
+        color: white;
+        padding: 1.8rem 1rem;
+        text-align: center;
+        margin-bottom: 2.5rem;
+        border-radius: 0 0 1.8rem 1.8rem;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+    }
+    
+    .main-header h1 {
+        font-size: 2.4rem;
+        font-weight: 700;
+        margin: 0;
+        letter-spacing: -0.5px;
+    }
+    
+    .main-header p {
+        font-size: 1.1rem;
+        opacity: 0.9;
+        margin-top: 0.5rem;
+    }
+    
+    /* Navigation Tabs */
+    .nav-tabs {
+        display: flex;
+        justify-content: center;
+        gap: 1.2rem;
+        margin-bottom: 2.2rem;
+    }
+    
+    .nav-tab {
+        padding: 0.8rem 1.8rem;
+        border-radius: 2.2rem;
+        background: white;
+        color: var(--primary-blue);
+        font-weight: 600;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        box-shadow: var(--shadow-sm);
+        border: 2px solid var(--primary-blue);
+        font-size: 1.05rem;
+    }
+    
+    .nav-tab.active {
+        background: var(--primary-blue);
+        color: white;
+        box-shadow: 0 4px 8px rgba(26, 115, 232, 0.3);
+    }
+    
+    /* Main Content Container */
+    .content-container {
+        max-width: 1200px;
+        margin: 0 auto;
+        padding: 0 1.2rem;
+    }
+    
+    /* Card Styles */
+    .card {
+        background: var(--white);
+        border-radius: 1.2rem;
+        padding: 1.8rem;
+        box-shadow: 0 6px 16px rgba(0, 0, 0, 0.05);
+        margin-bottom: 1.8rem;
+        transition: transform 0.3s ease, box-shadow 0.3s ease;
+        border-top: 4px solid var(--primary-blue);
+    }
+    
+    .card:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+    }
+    
+    .card h3 {
+        color: var(--primary-blue);
+        margin-top: 0;
+        margin-bottom: 1.5rem;
+        font-size: 1.4rem;
+        border-bottom: 2px solid var(--medium-gray);
+        padding-bottom: 0.8rem;
+    }
+    
+    /* Buttons */
+    .btn {
+        background: linear-gradient(to right, var(--primary-blue), var(--dark-blue));
+        color: white;
+        border: none;
+        border-radius: 0.9rem;
+        padding: 0.9rem 2rem;
+        font-weight: 600;
+        transition: all 0.3s ease;
+        box-shadow: 0 4px 8px rgba(26, 115, 232, 0.3);
+        cursor: pointer;
+        font-size: 1rem;
+        display: inline-block;
+        text-align: center;
+    }
+    
+    .btn:hover {
+        transform: translateY(-3px);
+        box-shadow: 0 6px 12px rgba(26, 115, 232, 0.4);
+        background: linear-gradient(to right, var(--dark-blue), var(--primary-blue));
+    }
+    
+    .btn-outline {
+        background: transparent;
+        color: var(--primary-blue);
+        border: 2px solid var(--primary-blue);
+    }
+    
+    .btn-outline:hover {
+        background: var(--primary-blue);
+        color: white;
+    }
+    
+    /* Quick Questions */
+    .question-btn {
+        background: linear-gradient(to bottom right, var(--light-blue), #dbeafe);
+        border: 1px solid var(--medium-gray);
+        padding: 1rem;
+        border-radius: 0.9rem;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        font-size: 0.95rem;
+        text-align: center;
+        height: 100%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: var(--dark-blue);
+        font-weight: 500;
+        box-shadow: 0 3px 6px rgba(0, 0, 0, 0.03);
+        position: relative;
+        overflow: hidden;
+        width: 100%;
+        margin-bottom: 0.9rem;
+    }
+    
+    .question-btn:before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 0;
+        background: linear-gradient(to bottom right, var(--primary-blue), var(--secondary-green));
+        opacity: 0;
+        transition: all 0.3s ease;
+        z-index: 0;
+    }
+    
+    .question-btn:hover {
+        transform: translateY(-3px);
+        box-shadow: 0 7px 14px rgba(0, 0, 0, 0.1);
+        color: white;
+        border-color: var(--primary-blue);
+    }
+    
+    .question-btn:hover:before {
+        height: 100%;
+        opacity: 1;
+    }
+    
+    .question-btn span {
+        position: relative;
+        z-index: 1;
+    }
+    
+    /* Result Boxes */
+    .result-box {
+        background: linear-gradient(to bottom right, #e8f5e9, #c8e6c9);
+        padding: 1.8rem;
+        border-radius: 0.9rem;
+        border-left: 4px solid var(--success-green);
+        margin: 1.8rem 0;
+        box-shadow: 0 6px 15px rgba(0, 0, 0, 0.05);
+    }
+    
+    /* Translation Boxes */
+    .translation-item {
+        background: linear-gradient(to bottom right, #f8fafc, #f1f5f9);
+        padding: 1.4rem;
+        margin: 1.4rem 0;
+        border-radius: 0.7rem;
+        border-left: 4px solid var(--primary-blue);
+        box-shadow: 0 3px 8px rgba(0, 0, 0, 0.03);
+        transition: all 0.3s ease;
+    }
+    
+    .translation-item:hover {
+        transform: translateY(-3px);
+        box-shadow: 0 7px 18px rgba(0, 0, 0, 0.08);
+    }
+    
+    .rtl-text {
+        direction: rtl;
+        text-align: right;
+        font-family: 'Tajawal', 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        font-size: 1.15rem;
+        line-height: 1.7;
+    }
+    
+    /* Language Badges */
+    .language-badge {
+        display: inline-block;
+        padding: 0.4rem 1rem;
+        border-radius: 0.9rem;
+        font-size: 0.85rem;
+        font-weight: 600;
+        margin-left: 0.7rem;
+    }
+    
+    .english-badge {
+        background: linear-gradient(to right, var(--primary-blue), var(--dark-blue));
+        color: white;
+    }
+    
+    .arabic-badge {
+        background: linear-gradient(to right, var(--secondary-green), #0f9d58);
+        color: white;
+    }
+    
+    /* Arabic UI Elements */
+    .arabic-ui .rtl-text,
+    .arabic-ui .section-title,
+    .arabic-ui .translation-item,
+    .arabic-ui .question-btn,
+    .arabic-ui .nav-tab,
+    .arabic-ui .main-header h1,
+    .arabic-ui .main-header p,
+    .arabic-ui .card h3,
+    .arabic-ui .result-box h3,
+    .arabic-ui .translation-item strong,
+    .arabic-ui .language-badge {
+        direction: rtl;
+        text-align: right;
+        font-family: 'Tajawal', 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    }
+    
+    .arabic-ui .nav-tabs {
+        direction: rtl;
+    }
+    
+    /* Responsive Design */
+    @media (max-width: 768px) {
+        .main-header h1 {
+            font-size: 1.9rem;
+        }
+        
+        .main-header p {
+            font-size: 1rem;
+        }
+        
+        .nav-tab {
+            padding: 0.6rem 1.2rem;
+            font-size: 0.95rem;
+        }
+        
+        .content-container {
+            padding: 0 0.8rem;
+        }
+        
+        .main-columns {
+            flex-direction: column;
+        }
+        
+        .question-btn {
+            font-size: 0.88rem;
+            padding: 0.85rem 0.6rem;
+        }
+        
+        .card {
+            padding: 1.4rem;
+        }
+    }
+    
+    /* Two-column layout */
+    .main-columns {
+        display: flex;
+        gap: 2rem;
+        margin-top: 1.2rem;
+    }
+    
+    .left-column {
+        flex: 4;
+    }
+    
+    .right-column {
+        flex: 6;
+    }
+    
+    /* Section Title */
+    .section-title {
+        font-size: 1.35rem;
+        color: var(--primary-blue);
+        margin-bottom: 1.4rem;
+        padding-bottom: 0.7rem;
+        border-bottom: 2px solid var(--primary-teal);
+    }
+    
+    /* Streamlit Button Override */
+    .stButton > button {
+        background: linear-gradient(to right, var(--primary-blue), var(--dark-blue)) !important;
+        color: white !important;
+        border: none !important;
+        border-radius: 0.9rem !important;
+        padding: 0.9rem 2rem !important;
+        font-weight: 600 !important;
+        transition: all 0.3s ease !important;
+        box-shadow: 0 4px 8px rgba(26, 115, 232, 0.3) !important;
+        width: 100%;
+    }
+    
+    .stButton > button:hover {
+        transform: translateY(-3px) !important;
+        box-shadow: 0 6px 12px rgba(26, 115, 232, 0.4) !important;
+        background: linear-gradient(to right, var(--dark-blue), var(--primary-blue)) !important;
+    }
+    
+    /* File Uploader Styling */
+    .stFileUploader > div > div {
+        border: 2px dashed var(--medium-gray) !important;
+        border-radius: 1rem !important;
+        background: var(--light-gray) !important;
+        padding: 2rem 1rem !important;
+    }
+    
+    .stFileUploader > div > div:hover {
+        border-color: var(--primary-blue) !important;
+    }
 </style>
 """, unsafe_allow_html=True)
 
@@ -243,7 +605,7 @@ def main():
             with col1:
                 # Image Upload Section
                 st.markdown(f'''
-                <div class="image-section">
+                <div class="card">
                     <h3>{T["upload_title"]}</h3>
                 </div>
                 ''', unsafe_allow_html=True)
@@ -260,7 +622,7 @@ def main():
                     
                     # Image info
                     st.markdown(f'''
-                    <div class="image-section">
+                    <div class="card">
                         <h3>{T["image_info_title"]}</h3>
                         <p><strong>{T["dimensions"]}:</strong> {image.size[0]} x {image.size[1]} pixels</p>
                         <p><strong>{T["size"]}:</strong> {round(uploaded_file.size / 1024, 1)} KB</p>
@@ -273,16 +635,18 @@ def main():
                 lang_col1, lang_col2 = st.columns([1, 1])
                 with lang_col1:
                     if st.button("🇺🇸 English" if st.session_state.lang == 'ar' else "English", 
-                               use_container_width=True):
+                               use_container_width=True,
+                               type="primary" if st.session_state.lang == 'en' else "secondary"):
                         st.session_state.lang = 'en'
                 with lang_col2:
                     if st.button("🇪🇬 العربية" if st.session_state.lang == 'en' else "العربية", 
-                               use_container_width=True):
+                               use_container_width=True,
+                               type="primary" if st.session_state.lang == 'ar' else "secondary"):
                         st.session_state.lang = 'ar'
                 
                 # Analysis Section
                 st.markdown(f'''
-                <div class="analysis-section">
+                <div class="card">
                     <h3>{T["analysis_title"]}</h3>
                 </div>
                 ''', unsafe_allow_html=True)
@@ -313,7 +677,7 @@ def main():
                 
                 st.markdown(f"""
                 <div style="margin-bottom: 15px;">
-                    <strong style="font-size: 1.1rem; color: #1e40af;">{T["suggested_questions"]}</strong>
+                    <strong style="font-size: 1.2rem; color: var(--primary-blue);">{T["suggested_questions"]}</strong>
                 </div>
                 """, unsafe_allow_html=True)
                 
@@ -338,7 +702,7 @@ def main():
                     "Your Question:", 
                     value=st.session_state.get('question', ''),
                     placeholder=placeholder,
-                    height=120,
+                    height=130,
                     label_visibility="collapsed"
                 )
                 
@@ -436,7 +800,7 @@ def main():
     elif active_tab == T["tab_about"]:
         # About section
         st.markdown(f'''
-        <div class="analysis-section">
+        <div class="card">
             <h3>{T["about_title"]}</h3>
             <p>{T["about_content"]}</p>
         </div>
@@ -446,32 +810,32 @@ def main():
         col1, col2 = st.columns(2)
         
         with col1:
-            st.subheader(T["features_title"])
-            st.markdown(f"""
-            <div style="background: linear-gradient(to bottom right, #e0f2fe, #dbeafe); 
-                        padding: 1.2rem; border-radius: 0.8rem; margin-bottom: 1.5rem;">
-                <ul style="list-style-type: none; padding-left: 0;">
-                    {''.join(f'<li style="margin-bottom: 0.8rem;">{feature}</li>' for feature in T["features"])}
+            st.markdown(f'''
+            <div class="card">
+                <h3>{T["features_title"]}</h3>
+                <ul style="list-style-type: none; padding-left: 0; margin-top: 1rem;">
+                    {''.join(f'<li style="margin-bottom: 1.2rem; padding-left: 1.5rem; position: relative;"><span style="position: absolute; left: 0; color: var(--primary-blue);">→</span>{feature}</li>' for feature in T["features"])}
                 </ul>
             </div>
-            """, unsafe_allow_html=True)
+            ''', unsafe_allow_html=True)
             
         with col2:
-            st.subheader(T["tech_title"])
-            st.markdown(f"""
-            <div style="background: linear-gradient(to bottom right, #ede9fe, #e0e7ff); 
-                        padding: 1.2rem; border-radius: 0.8rem; margin-bottom: 1.5rem;">
-                <ul style="list-style-type: none; padding-left: 0;">
-                    {''.join(f'<li style="margin-bottom: 0.8rem;">{tech}</li>' for tech in T["tech"])}
+            st.markdown(f'''
+            <div class="card">
+                <h3>{T["tech_title"]}</h3>
+                <ul style="list-style-type: none; padding-left: 0; margin-top: 1rem;">
+                    {''.join(f'<li style="margin-bottom: 1.2rem; padding-left: 1.5rem; position: relative;"><span style="position: absolute; left: 0; color: var(--primary-blue);">→</span>{tech}</li>' for tech in T["tech"])}
                 </ul>
             </div>
-            """, unsafe_allow_html=True)
+            ''', unsafe_allow_html=True)
         
         # Medical disclaimer
-        st.info(f"""
-        **{T["professional_disclaimer"]}**  
-        {T["professional_content"]}
-        """)
+        st.markdown(f'''
+        <div class="card" style="background: linear-gradient(to bottom right, #fff8e1, #ffecb3); border-left: 4px solid var(--warning-yellow);">
+            <h3>{T["professional_disclaimer"]}</h3>
+            <p>{T["professional_content"]}</p>
+        </div>
+        ''', unsafe_allow_html=True)
     
     st.markdown('</div>', unsafe_allow_html=True)  # Close content-container
 
