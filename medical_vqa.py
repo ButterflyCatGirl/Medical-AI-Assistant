@@ -14,16 +14,23 @@ st.set_page_config(
     initial_sidebar_state="collapsed"
 )
 
-# Modern Minimalist CSS Design
+# Modern Medical Theme CSS Design
 st.markdown("""
 <style>
     /* Import Google Fonts */
     @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
     
-    /* Root Variables */
+    /* Root Variables - Medical Theme */
     :root {
         --primary-blue: #0ea5e9;
         --primary-teal: #14b8a6;
+        --primary-mint: #10d9c4;
+        --secondary-purple: #8b5cf6;
+        --accent-orange: #f97316;
+        --success-green: #22c55e;
+        --warning-yellow: #eab308;
+        --error-red: #ef4444;
+        --dark-blue: #1e40af;
         --light-gray: #f8fafc;
         --medium-gray: #64748b;
         --dark-gray: #1e293b;
@@ -36,9 +43,9 @@ st.markdown("""
         font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
     }
     
-    .main {
-        background-color: #f9fbfd;
-        min-height: 100vh;
+    body {
+        background-color: #f0f9ff;
+        color: #1e293b;
     }
     
     /* Header Styles */
@@ -97,6 +104,7 @@ st.markdown("""
         padding: 1.5rem;
         box-shadow: var(--shadow-sm);
         margin-bottom: 1.5rem;
+        border-left: 4px solid var(--primary-blue);
     }
     
     /* Analysis Section */
@@ -105,52 +113,91 @@ st.markdown("""
         border-radius: 1rem;
         padding: 1.5rem;
         box-shadow: var(--shadow-sm);
+        border-left: 4px solid var(--primary-teal);
     }
     
-    /* Quick Questions - 2 columns layout */
+    /* Quick Questions - 2 columns layout with medical theme */
     .quick-questions {
         display: grid;
         grid-template-columns: repeat(2, 1fr);
-        gap: 0.5rem;
+        gap: 0.8rem;
         margin-bottom: 1.5rem;
     }
     
     .question-btn {
-        background: #f0f9ff;
-        border: 1px solid #e0f2fe;
-        padding: 0.6rem 0.8rem;
+        background: linear-gradient(to bottom right, #e0f2fe, #dbeafe);
+        border: 1px solid #bae6fd;
+        padding: 0.8rem;
         border-radius: 0.75rem;
         cursor: pointer;
-        transition: all 0.2s ease;
-        font-size: 0.9rem;
+        transition: all 0.3s ease;
+        font-size: 0.95rem;
         text-align: center;
         height: 100%;
         display: flex;
         align-items: center;
         justify-content: center;
+        color: #1e40af;
+        font-weight: 500;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+        position: relative;
+        overflow: hidden;
+    }
+    
+    .question-btn:before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 0;
+        background: linear-gradient(to bottom right, var(--primary-blue), var(--primary-teal));
+        opacity: 0;
+        transition: all 0.3s ease;
+        z-index: 0;
     }
     
     .question-btn:hover {
-        background: #e0f2fe;
+        transform: translateY(-3px);
+        box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+        color: white;
         border-color: var(--primary-blue);
+    }
+    
+    .question-btn:hover:before {
+        height: 100%;
+        opacity: 1;
+    }
+    
+    .question-btn span {
+        position: relative;
+        z-index: 1;
     }
     
     /* Result Boxes */
     .result-box {
-        background: #f0fdf4;
+        background: linear-gradient(to bottom right, #f0fdf4, #dcfce7);
         padding: 1.5rem;
         border-radius: 0.75rem;
-        border-left: 3px solid var(--primary-teal);
+        border-left: 4px solid var(--success-green);
         margin: 1.5rem 0;
+        box-shadow: 0 4px 10px rgba(0, 0, 0, 0.05);
     }
     
     /* Translation Boxes */
     .translation-item {
-        background: #f8fafc;
-        padding: 1rem;
-        margin: 1rem 0;
+        background: linear-gradient(to bottom right, #f8fafc, #f1f5f9);
+        padding: 1.2rem;
+        margin: 1.2rem 0;
         border-radius: 0.5rem;
-        border-left: 2px solid var(--primary-teal);
+        border-left: 3px solid var(--primary-blue);
+        box-shadow: 0 2px 5px rgba(0, 0, 0, 0.03);
+        transition: all 0.3s ease;
+    }
+    
+    .translation-item:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 5px 15px rgba(0, 0, 0, 0.08);
     }
     
     .rtl-text {
@@ -162,20 +209,20 @@ st.markdown("""
     /* Language Badges */
     .language-badge {
         display: inline-block;
-        padding: 0.2rem 0.6rem;
+        padding: 0.3rem 0.8rem;
         border-radius: 0.75rem;
-        font-size: 0.75rem;
+        font-size: 0.8rem;
         font-weight: 600;
         margin-left: 0.5rem;
     }
     
     .english-badge {
-        background: var(--primary-blue);
+        background: linear-gradient(to right, var(--primary-blue), var(--dark-blue));
         color: white;
     }
     
     .arabic-badge {
-        background: var(--primary-teal);
+        background: linear-gradient(to right, var(--primary-teal), var(--success-green));
         color: white;
     }
     
@@ -206,7 +253,7 @@ st.markdown("""
     /* Two-column layout */
     .main-columns {
         display: flex;
-        gap: 1.5rem;
+        gap: 1.8rem;
         margin-top: 1rem;
     }
     
@@ -222,9 +269,27 @@ st.markdown("""
     .section-title {
         font-size: 1.3rem;
         color: var(--primary-blue);
-        margin-bottom: 1rem;
-        padding-bottom: 0.5rem;
+        margin-bottom: 1.2rem;
+        padding-bottom: 0.6rem;
         border-bottom: 2px solid var(--primary-teal);
+    }
+    
+    /* Button Styles */
+    .stButton > button {
+        background: linear-gradient(to right, var(--primary-blue), var(--primary-teal));
+        color: white;
+        border: none;
+        border-radius: 0.8rem;
+        padding: 0.8rem 1.8rem;
+        font-weight: 600;
+        transition: all 0.3s ease;
+        box-shadow: 0 4px 8px rgba(14, 165, 233, 0.3);
+    }
+    
+    .stButton > button:hover {
+        transform: translateY(-3px);
+        box-shadow: 0 6px 12px rgba(14, 165, 233, 0.4);
+        background: linear-gradient(to right, var(--dark-blue), var(--primary-blue));
     }
 </style>
 """, unsafe_allow_html=True)
@@ -400,7 +465,7 @@ def main():
                 
                 st.session_state.lang = 'en' if lang == "🇺🇸 English" else 'ar'
                 
-                # Suggested Questions - Now in 2 columns
+                # Suggested Questions - Now in 2 columns with new style
                 questions = {
                     "en": [
                         "What abnormalities do you see?",
@@ -425,8 +490,8 @@ def main():
                 }
                 
                 st.markdown("""
-                <div style="margin-bottom: 10px;">
-                    <strong>Suggested Questions:</strong>
+                <div style="margin-bottom: 15px;">
+                    <strong style="font-size: 1.1rem; color: #1e40af;">Suggested Questions:</strong>
                 </div>
                 """, unsafe_allow_html=True)
                 
@@ -560,24 +625,34 @@ def main():
         with col1:
             st.subheader("🔍 Core Features")
             st.markdown("""
-            - 🩻 X-ray, CT, MRI & Ultrasound analysis
-            - 🌍 English/Arabic bilingual support
-            - 🧠 Specialized medical AI models
-            - 🎯 Context-aware understanding
-            - 💬 Natural language interaction
-            - 📊 Detailed medical insights
-            """)
+            <div style="background: linear-gradient(to bottom right, #e0f2fe, #dbeafe); 
+                        padding: 1.2rem; border-radius: 0.8rem; margin-bottom: 1.5rem;">
+                <ul style="list-style-type: none; padding-left: 0;">
+                    <li style="margin-bottom: 0.8rem;">🩻 <strong>X-ray, CT, MRI & Ultrasound analysis</strong></li>
+                    <li style="margin-bottom: 0.8rem;">🌍 <strong>English/Arabic bilingual support</strong></li>
+                    <li style="margin-bottom: 0.8rem;">🧠 <strong>Specialized medical AI models</strong></li>
+                    <li style="margin-bottom: 0.8rem;">🎯 <strong>Context-aware understanding</strong></li>
+                    <li style="margin-bottom: 0.8rem;">💬 <strong>Natural language interaction</strong></li>
+                    <li>📊 <strong>Detailed medical insights</strong></li>
+                </ul>
+            </div>
+            """, unsafe_allow_html=True)
             
         with col2:
             st.subheader("🛠️ Technology")
             st.markdown("""
-            - 🤖 BLIP Vision-Language Model
-            - 🔥 PyTorch Deep Learning
-            - 🌐 Google Translator API
-            - 🚀 Streamlit Framework
-            - 🐍 Python Backend
-            - 💾 Hugging Face Transformers
-            """)
+            <div style="background: linear-gradient(to bottom right, #ede9fe, #e0e7ff); 
+                        padding: 1.2rem; border-radius: 0.8rem; margin-bottom: 1.5rem;">
+                <ul style="list-style-type: none; padding-left: 0;">
+                    <li style="margin-bottom: 0.8rem;">🤖 <strong>BLIP Vision-Language Model</strong></li>
+                    <li style="margin-bottom: 0.8rem;">🔥 <strong>PyTorch Deep Learning</strong></li>
+                    <li style="margin-bottom: 0.8rem;">🌐 <strong>Google Translator API</strong></li>
+                    <li style="margin-bottom: 0.8rem;">🚀 <strong>Streamlit Framework</strong></li>
+                    <li style="margin-bottom: 0.8rem;">🐍 <strong>Python Backend</strong></li>
+                    <li>💾 <strong>Hugging Face Transformers</strong></li>
+                </ul>
+            </div>
+            """, unsafe_allow_html=True)
         
         # Medical disclaimer
         st.info("""
