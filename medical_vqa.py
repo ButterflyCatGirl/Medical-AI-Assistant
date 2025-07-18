@@ -107,10 +107,10 @@ st.markdown("""
         box-shadow: var(--shadow-sm);
     }
     
-    /* Quick Questions */
+    /* Quick Questions - 2 columns layout */
     .quick-questions {
-        display: flex;
-        flex-wrap: wrap;
+        display: grid;
+        grid-template-columns: repeat(2, 1fr);
         gap: 0.5rem;
         margin-bottom: 1.5rem;
     }
@@ -118,11 +118,16 @@ st.markdown("""
     .question-btn {
         background: #f0f9ff;
         border: 1px solid #e0f2fe;
-        padding: 0.6rem 1rem;
+        padding: 0.6rem 0.8rem;
         border-radius: 0.75rem;
         cursor: pointer;
         transition: all 0.2s ease;
         font-size: 0.9rem;
+        text-align: center;
+        height: 100%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
     }
     
     .question-btn:hover {
@@ -192,6 +197,10 @@ st.markdown("""
         .main-columns {
             flex-direction: column;
         }
+        
+        .quick-questions {
+            grid-template-columns: 1fr;
+        }
     }
     
     /* Two-column layout */
@@ -207,6 +216,15 @@ st.markdown("""
     
     .right-column {
         flex: 6;
+    }
+    
+    /* Section Title */
+    .section-title {
+        font-size: 1.3rem;
+        color: var(--primary-blue);
+        margin-bottom: 1rem;
+        padding-bottom: 0.5rem;
+        border-bottom: 2px solid var(--primary-teal);
     }
 </style>
 """, unsafe_allow_html=True)
@@ -374,7 +392,7 @@ def main():
                 # Language Selection
                 lang = st.radio(
                     "Language:", 
-                    ["🇺🇸 English", "🇪🇬 العربية"],  # Changed Saudi flag to Egyptian flag
+                    ["🇺🇸 English", "🇪🇬 العربية"],
                     horizontal=True,
                     index=0 if st.session_state.lang == 'en' else 1,
                     key="lang_selector"
@@ -382,7 +400,7 @@ def main():
                 
                 st.session_state.lang = 'en' if lang == "🇺🇸 English" else 'ar'
                 
-                # Suggested Questions
+                # Suggested Questions - Now in 2 columns
                 questions = {
                     "en": [
                         "What abnormalities do you see?",
@@ -391,7 +409,8 @@ def main():
                         "Describe the key medical findings",
                         "Any signs of infection present?",
                         "Is there a tumor or mass visible?",
-                        "What is your diagnostic assessment?"
+                        "What is your diagnostic assessment?",
+                        "Is there evidence of pneumonia?"
                     ],
                     "ar": [
                         "ما هي التشوهات التي تراها؟",
@@ -400,14 +419,26 @@ def main():
                         "صف النتائج الطبية الرئيسية",
                         "هل هناك أي علامات للعدوى؟",
                         "هل هناك ورم أو كتلة مرئية؟",
-                        "ما هو تقييمك التشخيصي؟"
+                        "ما هو تقييمك التشخيصي؟",
+                        "هل هناك دليل على الالتهاب الرئوي؟"
                     ]
                 }
                 
+                st.markdown("""
+                <div style="margin-bottom: 10px;">
+                    <strong>Suggested Questions:</strong>
+                </div>
+                """, unsafe_allow_html=True)
+                
+                # Create a grid container for questions
                 st.markdown('<div class="quick-questions">', unsafe_allow_html=True)
-                for i, q in enumerate(questions[st.session_state.lang]):
+                
+                # Display questions in 2 columns
+                lang_questions = questions[st.session_state.lang]
+                for i, q in enumerate(lang_questions):
                     if st.button(q, key=f"q_{i}_{st.session_state.lang}"):
                         st.session_state.question = q
+                
                 st.markdown('</div>', unsafe_allow_html=True)
                 
                 # Custom Question
