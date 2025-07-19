@@ -384,7 +384,6 @@ st.markdown("""
 </style>
 """, unsafe_allow_html=True)
 
-# باقي الكود يبقى كما هو دون تغيير
 # Cache models globally
 @st.cache_resource(show_spinner=False)
 def load_medical_vqa_model():
