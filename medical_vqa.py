@@ -388,7 +388,7 @@ st.markdown("""
 @st.cache_resource(show_spinner=False)
 def load_medical_vqa_model():
     try:
-        model_name = "sharawy53/final_diploma_blip-med-rad-arabic"
+        model_name = "sharawy53/final_diploma_V2_blip-med-rad-arabic"
         processor = BlipProcessor.from_pretrained(model_name)
         model = BlipForQuestionAnswering.from_pretrained(model_name)
         return processor, model
