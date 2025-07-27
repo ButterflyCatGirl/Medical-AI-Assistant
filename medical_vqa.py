@@ -524,14 +524,18 @@ def cached_translate_text(text, source_lang, target_lang):
         return text, False
         
     try:
-        # First try medical dictionary translation
+        # Apply medical dictionary translation in both directions
         if source_lang == 'en' and target_lang == 'ar':
             for eng, ar in MEDICAL_TRANSLATION_DICT.items():
-                if re.search(rf'\b{re.escape(eng)}\b', text, re.IGNORECASE):
-                    text = re.sub(rf'\b{re.escape(eng)}\b', ar, text, flags=re.IGNORECASE)
-                    return text, True
+                pattern = r'\b' + re.escape(eng) + r'\b'
+                text = re.sub(pattern, ar, text, flags=re.IGNORECASE)
+        elif source_lang == 'ar' and target_lang == 'en':
+            # Create reverse dictionary for translation from Arabic to English
+            reverse_dict = {v: k for k, v in MEDICAL_TRANSLATION_DICT.items()}
+            for ar_term, eng_term in reverse_dict.items():
+                text = text.replace(ar_term, eng_term)
         
-        # Fallback to Google Translate
+        # Fallback to Google Translate for non-medical words
         translator = GoogleTranslator(source=source_lang, target=target_lang)
         translated_text = translator.translate(text)
         return translated_text, True
@@ -670,12 +674,20 @@ def post_process_answer(question, answer):
     return apply_medical_translation(answer)
 
 def apply_medical_translation(answer):
-    """Apply medical translation dictionary to improve accuracy"""
-    # If answer is in English, translate using dictionary
-    if not is_arabic(answer):
+    """Apply medical translation dictionary to improve accuracy in both directions"""
+    # Create reverse dictionary for Arabic to English translation
+    reverse_dict = {v: k for k, v in MEDICAL_TRANSLATION_DICT.items()}
+    
+    if is_arabic(answer):
+        # If answer is Arabic: translate medical terms to English
+        for ar_term, eng_term in reverse_dict.items():
+            answer = answer.replace(ar_term, eng_term)
+    else:
+        # If answer is English: translate medical terms to Arabic
         for eng, ar in MEDICAL_TRANSLATION_DICT.items():
             pattern = r'\b' + re.escape(eng) + r'\b'
             answer = re.sub(pattern, ar, answer, flags=re.IGNORECASE)
+    
     return answer
 
 def ensure_arabic_answer(answer):
@@ -982,25 +994,22 @@ def main():
                     elif not question:
                         st.warning("Please enter a question about the medical image" if st.session_state.lang == 'en' else "يرجى إدخال سؤال حول الصورة الطبية")
                     else:
-                        # Translate question if needed (using cached translations)
+                        # تحديد لغة السؤال الأصلي
                         question_is_arabic = is_arabic(question)
-                        
-                        if st.session_state.lang == 'en' and question_is_arabic:
-                            display_question_en = ensure_translation_quality(question, "ar", "en")
+
+                        # النموذج يحتاج سؤالاً بالعربية دائماً
+                        if question_is_arabic:
                             model_question = question
-                            display_question_ar = question
-                        elif st.session_state.lang == 'en' and not question_is_arabic:
-                            model_question = ensure_translation_quality(question, "en", "ar")
-                            display_question_en = question
-                            display_question_ar = model_question
-                        elif st.session_state.lang == 'ar' and not question_is_arabic:
-                            model_question = ensure_translation_quality(question, "en", "ar")
-                            display_question_en = question
-                            display_question_ar = model_question
                         else:
-                            display_question_en = ensure_translation_quality(question, "ar", "en")
-                            model_question = question
+                            model_question = ensure_translation_quality(question, "en", "ar")
+
+                        # تحضير السؤال للعرض:
+                        if question_is_arabic:
                             display_question_ar = question
+                            display_question_en = ensure_translation_quality(question, "ar", "en")
+                        else:
+                            display_question_en = question
+                            display_question_ar = ensure_translation_quality(question, "en", "ar")
                         
                         # Add medical context
                         contextualized_question = get_medical_context(model_question)
