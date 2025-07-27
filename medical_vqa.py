@@ -7,7 +7,7 @@ import time
 from deep_translator import GoogleTranslator
 from functools import lru_cache
 
-# Medical Translation Dictionary (English to Arabic)
+# Medical Translation Dictionary (English to Arabic) - UPDATED
 MEDICAL_TRANSLATION_DICT = {
     # General Terms
     "normal": "طبيعي",
@@ -78,6 +78,18 @@ MEDICAL_TRANSLATION_DICT = {
     "mediastinal mass": "كتلة منصفية",
     "bone degeneration": "تنكس عظمي",
     "spinal degeneration": "تنكس فقري",
+    
+    # Imaging Types
+    "x-ray": "أشعة سينية",
+    "xray": "أشعة سينية",
+    "ct scan": "تصوير مقطعي",
+    "mri scan": "تصوير بالرنين المغناطيسي",
+    "ultrasound": "موجات فوق صوتية",
+    "chest x-ray": "أشعة سينية على الصدر",
+    "abdominal x-ray": "أشعة سينية على البطن",
+    "bone x-ray": "أشعة سينية على العظام",
+    "radiograph": "صورة إشعاعية",
+    "mammogram": "تصوير الثدي الشعاعي"
 }
 
 # Configure page
@@ -493,9 +505,53 @@ def analyze_medical_image(image, question, processor, model):
         with torch.no_grad():
             out = model.generate(**inputs, max_length=100, num_beams=5)
         answer = processor.decode(out[0], skip_special_tokens=True)
-        return answer
+        
+        # Post-process answer for specific question types
+        return post_process_answer(question, answer)
     except Exception as e:
         return f"🚨 Error analyzing image: {str(e)}"
+
+def post_process_answer(question, answer):
+    """Refine answers for specific question types to be more direct"""
+    # Normal/Abnormal questions
+    normal_keywords = ["normal", "abnormal", "طبيعي", "غير طبيعي", "طبيعية", "غير طبيعية"]
+    if any(keyword in question.lower() for keyword in normal_keywords):
+        # Check for explicit answers first
+        if "abnormal" in answer.lower() or "غير طبيعي" in answer or "غير طبيعية" in answer:
+            return "Abnormal" if "en" in question.lower() else "غير طبيعي"
+        elif "normal" in answer.lower() or "طبيعي" in answer or "طبيعية" in answer:
+            return "Normal" if "en" in question.lower() else "طبيعي"
+        
+        # Infer from context for more accurate determination
+        abnormal_indicators = [
+            "fracture", "pneumonia", "tumor", "infection", "effusion", 
+            "opacity", "consolidation", "edema", "mass", "nodule",
+            "كسر", "ورم", "عدوى", "انصباب", "عتامة", "تصلب", "وذمة", "كتلة", "عقدة"
+        ]
+        
+        if any(indicator in answer.lower() for indicator in abnormal_indicators):
+            return "Abnormal" if "en" in question.lower() else "غير طبيعي"
+        else:
+            return "Normal" if "en" in question.lower() else "طبيعي"
+    
+    # Image type questions
+    type_keywords = ["what type", "what kind", "نوع", "نوع الصورة", "نوع الأشعة", "أي نوع"]
+    if any(keyword in question.lower() for keyword in type_keywords):
+        # Try to extract a direct answer
+        if "x-ray" in answer.lower() or "xray" in answer.lower() or "أشعة" in answer:
+            return "X-ray" if "en" in question.lower() else "أشعة سينية"
+        elif "ct" in answer.lower() or "computed tomography" in answer.lower() or "مقطعي" in answer:
+            return "CT scan" if "en" in question.lower() else "تصوير مقطعي"
+        elif "mri" in answer.lower() or "magnetic resonance" in answer.lower() or "رنين" in answer:
+            return "MRI scan" if "en" in question.lower() else "تصوير بالرنين المغناطيسي"
+        elif "ultrasound" in answer.lower() or "موجات" in answer:
+            return "Ultrasound" if "en" in question.lower() else "موجات فوق صوتية"
+        elif "chest" in question.lower() and ("x-ray" in question.lower() or "أشعة" in question):
+            return "Chest X-ray" if "en" in question.lower() else "أشعة سينية على الصدر"
+        elif "abdominal" in question.lower() and ("x-ray" in question.lower() or "أشعة" in question):
+            return "Abdominal X-ray" if "en" in question.lower() else "أشعة سينية على البطن"
+    
+    return answer
 
 def apply_medical_translation(answer):
     """Apply medical translation dictionary to improve accuracy"""
