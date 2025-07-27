@@ -21,6 +21,11 @@ MEDICAL_TRANSLATION_DICT = {
     "kind": "نوع",
     "area": "منطقة",
     "medical": "طبي",
+    "pleural": "جنبي",
+    "efficacy": "فعالية",
+    "paratracheal": "مجاور للرغامى",
+    "mediastinal": "منصفية",
+    "pulmonary": "رئوي",
     
     # Anatomy
     "lung": "رئة",
@@ -33,12 +38,8 @@ MEDICAL_TRANSLATION_DICT = {
     "rib": "ضلع",
     "ribs": "أضلاع",
     "spine": "عمود فقري",
-    "pleural": "جنبي",
     "cavity": "تجويف",
     "tissue": "نسيج",
-    "paratracheal": "مجاور للرغامى",
-    "mediastinal": "منصفية",
-    "pulmonary": "رئوي",
     
     # Conditions
     "pneumonia": "التهاب رئوي",
@@ -101,19 +102,6 @@ MEDICAL_TRANSLATION_DICT = {
     "mammogram": "تصوير الثدي الشعاعي",
     "imaging": "تصوير",
     "scan": "فحص",
-    
-    # Technology Terms
-    "vision-language model": "نموذج الرؤية واللغة",
-    "deep learning": "تعلم عميق",
-    "translator api": "واجهة برمجة تطبيقات الترجمة",
-    "framework": "إطار عمل",
-    "backend": "خلفية",
-    "transformers": "المحولات",
-    "artificial intelligence": "الذكاء الاصطناعي",
-    "medical ai": "الذكاء الاصطناعي الطبي",
-    "context-aware": "واعي بالسياق",
-    "natural language": "لغة طبيعية",
-    "detailed insights": "رؤى مفصلة",
 }
 
 # Configure page
@@ -125,7 +113,373 @@ st.set_page_config(
 )
 
 # Modern E-Health Theme CSS Design with RTL support
-# ... [CSS code remains the same] ...
+st.markdown("""
+<style>
+    /* Import Google Fonts */
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+    @import url('https://fonts.googleapis.com/css2?family=Tajawal:wght@300;400;500;700&display=swap');
+    
+    /* Root Variables - E-Health Theme */
+    :root {
+        --primary-blue: #1a73e8;      /* Deep professional blue */
+        --primary-teal: #00bcd4;      /* Medical teal */
+        --secondary-green: #34a853;   /* Health green */
+        --accent-orange: #fbbc05;     /* Warm accent */
+        --light-blue: #e8f0fe;        /* Light background blue */
+        --success-green: #34a853;     /* Success green */
+        --warning-yellow: #fbbc05;    /* Warning yellow */
+        --error-red: #ea4335;         /* Error red */
+        --dark-blue: #174ea6;         /* Dark blue */
+        --light-gray: #f8f9fa;        /* Light gray */
+        --medium-gray: #dadce0;       /* Medium gray */
+        --dark-gray: #202124;         /* Dark text */
+        --white: #ffffff;             /* White */
+        --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.1);
+    }
+    
+    /* Global Styles */
+    * {
+        font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+    }
+    
+    body {
+        background-color: #f8fafc;
+        color: var(--dark-gray);
+    }
+    
+    /* Header Styles */
+    .main-header {
+        background: linear-gradient(135deg, var(--primary-blue) 0%, var(--secondary-green) 100%);
+        color: white;
+        padding: 1.8rem 1rem;
+        text-align: center;
+        margin-bottom: 2.5rem;
+        border-radius: 0 0 1.8rem 1.8rem;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+    }
+    
+    .main-header h1 {
+        font-size: 2.4rem;
+        font-weight: 700;
+        margin: 0;
+        letter-spacing: -0.5px;
+    }
+    
+    .main-header p {
+        font-size: 1.1rem;
+        opacity: 0.9;
+        margin-top: 0.5rem;
+    }
+    
+    /* Navigation Tabs */
+    .nav-tabs {
+        display: flex;
+        justify-content: center;
+        gap: 1.2rem;
+        margin-bottom: 2.2rem;
+    }
+    
+    .nav-tab {
+        padding: 0.8rem 1.8rem;
+        border-radius: 2.2rem;
+        background: white;
+        color: var(--primary-blue);
+        font-weight: 600;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        box-shadow: var(--shadow-sm);
+        border: 2px solid var(--primary-blue);
+        font-size: 1.05rem;
+    }
+    
+    .nav-tab.active {
+        background: var(--primary-blue);
+        color: white;
+        box-shadow: 0 4px 8px rgba(26, 115, 232, 0.3);
+    }
+    
+    /* Main Content Container */
+    .content-container {
+        max-width: 1200px;
+        margin: 0 auto;
+        padding: 0 1.2rem;
+    }
+    
+    /* Card Styles */
+    .card {
+        background: var(--white);
+        border-radius: 1.2rem;
+        padding: 1.8rem;
+        box-shadow: 0 6px 16px rgba(0, 0, 0, 0.05);
+        margin-bottom: 1.8rem;
+        transition: transform 0.3s ease, box-shadow 0.3s ease;
+        border-top: 4px solid var(--primary-blue);
+    }
+    
+    .card:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+    }
+    
+    .card h3 {
+        color: var(--primary-blue);
+        margin-top: 0;
+        margin-bottom: 1.5rem;
+        font-size: 1.4rem;
+        border-bottom: 2px solid var(--medium-gray);
+        padding-bottom: 0.8rem;
+    }
+    
+    /* Buttons */
+    .btn {
+        background: linear-gradient(to right, var(--primary-blue), var(--dark-blue));
+        color: white;
+        border: none;
+        border-radius: 0.9rem;
+        padding: 0.9rem 2rem;
+        font-weight: 600;
+        transition: all 0.3s ease;
+        box-shadow: 0 4px 8px rgba(26, 115, 232, 0.3);
+        cursor: pointer;
+        font-size: 1rem;
+        display: inline-block;
+        text-align: center;
+    }
+    
+    .btn:hover {
+        transform: translateY(-3px);
+        box-shadow: 0 6px 12px rgba(26, 115, 232, 0.4);
+        background: linear-gradient(to right, var(--dark-blue), var(--primary-blue));
+    }
+    
+    .btn-outline {
+        background: transparent;
+        color: var(--primary-blue);
+        border: 2px solid var(--primary-blue);
+    }
+    
+    .btn-outline:hover {
+        background: var(--primary-blue);
+        color: white;
+    }
+    
+    /* Quick Questions - UPDATED COLORS */
+    .question-btn {
+        background: linear-gradient(to bottom right, #e0f0ff, #d1f2eb); /* Light Nile blue + light green */
+        border: 1px solid #b8e0d2; /* Soft green border */
+        padding: 1rem;
+        border-radius: 0.9rem;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        font-size: 0.95rem;
+        text-align: center;
+        height: 100%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: #1a6e8a; /* Deep blue text */
+        font-weight: 500;
+        box-shadow: 0 3px 6px rgba(0, 0, 0, 0.03);
+        position: relative;
+        overflow: hidden;
+        width: 100%;
+        margin-bottom: 0.9rem;
+    }
+    
+    .question-btn:before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 0;
+        background: linear-gradient(135deg, var(--primary-blue) 0%, var(--secondary-green) 100%); /* Same as header */
+        opacity: 0;
+        transition: all 0.3s ease;
+        z-index: 0;
+    }
+    
+    .question-btn:hover {
+        transform: translateY(-3px);
+        box-shadow: 0 7px 14px rgba(0, 0, 0, 0.1);
+        color: white;
+        border-color: var(--primary-blue);
+    }
+    
+    .question-btn:hover:before {
+        height: 100%;
+        opacity: 1;
+    }
+    
+    .question-btn span {
+        position: relative;
+        z-index: 1;
+    }
+    
+    /* Result Boxes */
+    .result-box {
+        background: linear-gradient(to bottom right, #e8f5e9, #c8e6c9);
+        padding: 1.8rem;
+        border-radius: 0.9rem;
+        border-left: 4px solid var(--success-green);
+        margin: 1.8rem 0;
+        box-shadow: 0 6px 15px rgba(0, 0, 0, 0.05);
+    }
+    
+    /* Translation Boxes */
+    .translation-item {
+        background: linear-gradient(to bottom right, #f8fafc, #f1f5f9);
+        padding: 1.4rem;
+        margin: 1.4rem 0;
+        border-radius: 0.7rem;
+        border-left: 4px solid var(--primary-blue);
+        box-shadow: 0 3px 8px rgba(0, 0, 0, 0.03);
+        transition: all 0.3s ease;
+    }
+    
+    .translation-item:hover {
+        transform: translateY(-3px);
+        box-shadow: 0 7px 18px rgba(0, 0, 0, 0.08);
+    }
+    
+    .rtl-text {
+        direction: rtl;
+        text-align: right;
+        font-family: 'Tajawal', 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        font-size: 1.15rem;
+        line-height: 1.7;
+    }
+    
+    /* Language Badges */
+    .language-badge {
+        display: inline-block;
+        padding: 0.4rem 1rem;
+        border-radius: 0.9rem;
+        font-size: 0.85rem;
+        font-weight: 600;
+        margin-left: 0.7rem;
+    }
+    
+    .english-badge {
+        background: linear-gradient(to right, var(--primary-blue), var(--dark-blue));
+        color: white;
+    }
+    
+    .arabic-badge {
+        background: linear-gradient(to right, var(--secondary-green), #0f9d58);
+        color: white;
+    }
+    
+    /* Arabic UI Elements */
+    .arabic-ui .rtl-text,
+    .arabic-ui .section-title,
+    .arabic-ui .translation-item,
+    .arabic-ui .question-btn,
+    .arabic-ui .nav-tab,
+    .arabic-ui .main-header h1,
+    .arabic-ui .main-header p,
+    .arabic-ui .card h3,
+    .arabic-ui .result-box h3,
+    .arabic-ui .translation-item strong,
+    .arabic-ui .language-badge {
+        direction: rtl;
+        text-align: right;
+        font-family: 'Tajawal', 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    }
+    
+    .arabic-ui .nav-tabs {
+        direction: rtl;
+    }
+    
+    /* Responsive Design */
+    @media (max-width: 768px) {
+        .main-header h1 {
+            font-size: 1.9rem;
+        }
+        
+        .main-header p {
+            font-size: 1rem;
+        }
+        
+        .nav-tab {
+            padding: 0.6rem 1.2rem;
+            font-size: 0.95rem;
+        }
+        
+        .content-container {
+            padding: 0 0.8rem;
+        }
+        
+        .main-columns {
+            flex-direction: column;
+        }
+        
+        .question-btn {
+            font-size: 0.88rem;
+            padding: 0.85rem 0.6rem;
+        }
+        
+        .card {
+            padding: 1.4rem;
+        }
+    }
+    
+    /* Two-column layout */
+    .main-columns {
+        display: flex;
+        gap: 2rem;
+        margin-top: 1.2rem;
+    }
+    
+    .left-column {
+        flex: 4;
+    }
+    
+    .right-column {
+        flex: 6;
+    }
+    
+    /* Section Title */
+    .section-title {
+        font-size: 1.35rem;
+        color: var(--primary-blue);
+        margin-bottom: 1.4rem;
+        padding-bottom: 0.7rem;
+        border-bottom: 2px solid var(--primary-teal);
+    }
+    
+    /* Streamlit Button Override */
+    .stButton > button {
+        background: linear-gradient(to right, var(--primary-blue), var(--dark-blue)) !important;
+        color: white !important;
+        border: none !important;
+        border-radius: 0.9rem !important;
+        padding: 0.9rem 2rem !important;
+        font-weight: 600 !important;
+        transition: all 0.3s ease !important;
+        box-shadow: 0 4px 8px rgba(26, 115, 232, 0.3) !important;
+        width: 100%;
+    }
+    
+    .stButton > button:hover {
+        transform: translateY(-3px) !important;
+        box-shadow: 0 6px 12px rgba(26, 115, 232, 0.4) !important;
+        background: linear-gradient(to right, var(--dark-blue), var(--primary-blue)) !important;
+    }
+    
+    /* File Uploader Styling */
+    .stFileUploader > div > div {
+        border: 2px dashed var(--medium-gray) !important;
+        border-radius: 1rem !important;
+        background: var(--light-gray) !important;
+        padding: 2rem 1rem !important;
+    }
+    
+    .stFileUploader > div > div:hover {
+        border-color: var(--primary-blue) !important;
+    }
+</style>
+""", unsafe_allow_html=True)
 
 # Cache models globally
 @st.cache_resource(show_spinner=False)
@@ -396,7 +750,7 @@ def main():
     # تحديد الفئة حسب اللغة
     ui_class = "arabic-ui" if st.session_state.lang == 'ar' else ""
     
-    # Modern Header
+    # Modern Header with gradient background
     st.markdown(f'''
     <div class="main-header">
         <h1>{T["app_title"]}</h1>
@@ -433,7 +787,7 @@ def main():
             col1, col2 = st.columns([4, 6], gap="large")
             
             with col1:
-                # Image Upload Section
+                # Image Upload Section with card design
                 st.markdown(f'''
                 <div class="card">
                     <h3>{T["upload_title"]}</h3>
@@ -450,7 +804,7 @@ def main():
                     image = Image.open(uploaded_file).convert("RGB")
                     st.image(image, caption=T["upload_title"], use_container_width=True)
                     
-                    # Image info
+                    # Image info in card design
                     st.markdown(f'''
                     <div class="card">
                         <h3>{T["image_info_title"]}</h3>
@@ -474,14 +828,14 @@ def main():
                                type="primary" if st.session_state.lang == 'ar' else "secondary"):
                         st.session_state.lang = 'ar'
                 
-                # Analysis Section
+                # Analysis Section with card design
                 st.markdown(f'''
                 <div class="card">
                     <h3>{T["analysis_title"]}</h3>
                 </div>
                 ''', unsafe_allow_html=True)
                 
-                # Suggested Questions - Fast rendering
+                # Suggested Questions - Fast rendering with gradient buttons
                 questions = {
                     "en": [
                         "What abnormalities do you see?",
@@ -515,7 +869,7 @@ def main():
                 </div>
                 """, unsafe_allow_html=True)
                 
-                # عرض الأسئلة في عمودين (4 صفوف)
+                # Display questions in two columns with gradient buttons
                 col_left, col_right = st.columns(2)
                 
                 with col_left:
@@ -540,7 +894,7 @@ def main():
                     label_visibility="collapsed"
                 )
                 
-                # Analyze Button
+                # Analyze Button with gradient design
                 if st.button(T["analyze_button"], type="primary", use_container_width=True):
                     if uploaded_file is None:
                         st.warning("Please upload a medical image first" if st.session_state.lang == 'en' else "يرجى رفع صورة طبية أولاً")
@@ -584,14 +938,14 @@ def main():
                         with st.spinner("🌐 Translating results..." if st.session_state.lang == 'en' else "🌐 جاري ترجمة النتائج..."):
                             english_answer, _ = cached_translate_text(arabic_answer_display, "ar", "en")
                         
-                        # Display results
+                        # Display results in styled boxes
                         st.markdown(f'''
                         <div class="result-box">
                             <h3>{T["results_title"]}</h3>
                         </div>
                         ''', unsafe_allow_html=True)
                         
-                        # Question display
+                        # Question display in translation boxes
                         st.markdown(f'''
                         <div class="translation-item">
                             <strong>{T["question_label"]}:</strong> 
@@ -608,7 +962,7 @@ def main():
                         </div>
                         ''', unsafe_allow_html=True)
                         
-                        # Answer display
+                        # Answer display in translation boxes
                         st.markdown(f'''
                         <div class="translation-item">
                             <strong>{T["analysis_label"]}:</strong> 
@@ -635,7 +989,7 @@ def main():
             st.error("Failed to load AI models. Please try again later." if st.session_state.lang == 'en' else "فشل تحميل نماذج الذكاء الاصطناعي. يرجى المحاولة لاحقًا.")
     
     elif active_tab == T["tab_about"]:
-        # About section
+        # About section with card design
         st.markdown(f'''
         <div class="card">
             <h3>{T["about_title"]}</h3>
@@ -647,40 +1001,58 @@ def main():
         col1, col2 = st.columns(2)
         
         with col1:
-            st.subheader(T["features_title"])
-            features_html = "<ul style='list-style-type: none; padding-left: 0;'>"
+            # Features section with gradient background
+            st.markdown(f'''
+            <div class="card">
+                <h3>{T["features_title"]}</h3>
+                <div style="padding: 1rem;">
+                    <ul style="list-style-type: none; padding-left: 0;">
+            ''', unsafe_allow_html=True)
+            
             for feature in T["features"]:
                 # Extract icon and text
                 icon = feature.split(" ")[0]
                 text = " ".join(feature.split(" ")[1:])
-                features_html += f"<li style='margin-bottom: 0.8rem;'>{icon} <strong>{text}</strong></li>"
-            features_html += "</ul>"
+                st.markdown(f'''
+                <li style="margin-bottom: 1rem; padding: 0.8rem; border-radius: 0.8rem; background: linear-gradient(to right, #e0f7fa, #e1f5fe);">
+                    <span style="font-size: 1.5rem; margin-right: 0.5rem;">{icon}</span>
+                    <span style="font-size: 1.1rem;">{text}</span>
+                </li>
+                ''', unsafe_allow_html=True)
             
-            st.markdown(f"""
-            <div style="background: linear-gradient(to bottom right, #e0f2fe, #dbeafe); 
-                        padding: 1.2rem; border-radius: 0.8rem; margin-bottom: 1.5rem;">
-                {features_html}
+            st.markdown('''
+                    </ul>
+                </div>
             </div>
-            """, unsafe_allow_html=True)
+            ''', unsafe_allow_html=True)
             
         with col2:
-            st.subheader(T["tech_title"])
-            tech_html = "<ul style='list-style-type: none; padding-left: 0;'>"
+            # Technology section with gradient background
+            st.markdown(f'''
+            <div class="card">
+                <h3>{T["tech_title"]}</h3>
+                <div style="padding: 1rem;">
+                    <ul style="list-style-type: none; padding-left: 0;">
+            ''', unsafe_allow_html=True)
+            
             for tech in T["tech"]:
                 # Extract icon and text
                 icon = tech.split(" ")[0]
                 text = " ".join(tech.split(" ")[1:])
-                tech_html += f"<li style='margin-bottom: 0.8rem;'>{icon} <strong>{text}</strong></li>"
-            tech_html += "</ul>"
+                st.markdown(f'''
+                <li style="margin-bottom: 1rem; padding: 0.8rem; border-radius: 0.8rem; background: linear-gradient(to right, #f3e5f5, #f1e6ff);">
+                    <span style="font-size: 1.5rem; margin-right: 0.5rem;">{icon}</span>
+                    <span style="font-size: 1.1rem;">{text}</span>
+                </li>
+                ''', unsafe_allow_html=True)
             
-            st.markdown(f"""
-            <div style="background: linear-gradient(to bottom right, #ede9fe, #e0e7ff); 
-                        padding: 1.2rem; border-radius: 0.8rem; margin-bottom: 1.5rem;">
-                {tech_html}
+            st.markdown('''
+                    </ul>
+                </div>
             </div>
-            """, unsafe_allow_html=True)
+            ''', unsafe_allow_html=True)
         
-        # Medical disclaimer
+        # Medical disclaimer with yellow gradient
         st.markdown(f'''
         <div class="card" style="background: linear-gradient(to bottom right, #fff8e1, #ffecb3); border-left: 4px solid var(--warning-yellow);">
             <h3>{T["professional_disclaimer"]}</h3>
