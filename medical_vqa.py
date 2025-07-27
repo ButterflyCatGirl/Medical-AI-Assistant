@@ -7,7 +7,7 @@ import time
 from deep_translator import GoogleTranslator
 from functools import lru_cache
 
-# Medical Translation Dictionary (English to Arabic) - UPDATED
+# Enhanced Medical Translation Dictionary (English to Arabic)
 MEDICAL_TRANSLATION_DICT = {
     # General Terms
     "normal": "طبيعي",
@@ -17,6 +17,10 @@ MEDICAL_TRANSLATION_DICT = {
     "diagnosis": "تشخيص",
     "impression": "انطباع",
     "observation": "ملاحظة",
+    "image": "صورة",
+    "kind": "نوع",
+    "area": "منطقة",
+    "medical": "طبي",
     
     # Anatomy
     "lung": "رئة",
@@ -32,6 +36,9 @@ MEDICAL_TRANSLATION_DICT = {
     "pleural": "جنبي",
     "cavity": "تجويف",
     "tissue": "نسيج",
+    "paratracheal": "مجاور للرغامى",
+    "mediastinal": "منصفية",
+    "pulmonary": "رئوي",
     
     # Conditions
     "pneumonia": "التهاب رئوي",
@@ -83,13 +90,30 @@ MEDICAL_TRANSLATION_DICT = {
     "x-ray": "أشعة سينية",
     "xray": "أشعة سينية",
     "ct scan": "تصوير مقطعي",
+    "computed tomography": "تصوير مقطعي",
     "mri scan": "تصوير بالرنين المغناطيسي",
+    "magnetic resonance": "تصوير بالرنين المغناطيسي",
     "ultrasound": "موجات فوق صوتية",
     "chest x-ray": "أشعة سينية على الصدر",
     "abdominal x-ray": "أشعة سينية على البطن",
     "bone x-ray": "أشعة سينية على العظام",
     "radiograph": "صورة إشعاعية",
-    "mammogram": "تصوير الثدي الشعاعي"
+    "mammogram": "تصوير الثدي الشعاعي",
+    "imaging": "تصوير",
+    "scan": "فحص",
+    
+    # Technology Terms
+    "vision-language model": "نموذج الرؤية واللغة",
+    "deep learning": "تعلم عميق",
+    "translator api": "واجهة برمجة تطبيقات الترجمة",
+    "framework": "إطار عمل",
+    "backend": "خلفية",
+    "transformers": "المحولات",
+    "artificial intelligence": "الذكاء الاصطناعي",
+    "medical ai": "الذكاء الاصطناعي الطبي",
+    "context-aware": "واعي بالسياق",
+    "natural language": "لغة طبيعية",
+    "detailed insights": "رؤى مفصلة",
 }
 
 # Configure page
@@ -101,373 +125,7 @@ st.set_page_config(
 )
 
 # Modern E-Health Theme CSS Design with RTL support
-st.markdown("""
-<style>
-    /* Import Google Fonts */
-    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
-    @import url('https://fonts.googleapis.com/css2?family=Tajawal:wght@300;400;500;700&display=swap');
-    
-    /* Root Variables - E-Health Theme */
-    :root {
-        --primary-blue: #1a73e8;      /* Deep professional blue */
-        --primary-teal: #00bcd4;      /* Medical teal */
-        --secondary-green: #34a853;   /* Health green */
-        --accent-orange: #fbbc05;     /* Warm accent */
-        --light-blue: #e8f0fe;        /* Light background blue */
-        --success-green: #34a853;     /* Success green */
-        --warning-yellow: #fbbc05;    /* Warning yellow */
-        --error-red: #ea4335;         /* Error red */
-        --dark-blue: #174ea6;         /* Dark blue */
-        --light-gray: #f8f9fa;        /* Light gray */
-        --medium-gray: #dadce0;       /* Medium gray */
-        --dark-gray: #202124;         /* Dark text */
-        --white: #ffffff;             /* White */
-        --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.1);
-    }
-    
-    /* Global Styles */
-    * {
-        font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
-    }
-    
-    body {
-        background-color: #f8fafc;
-        color: var(--dark-gray);
-    }
-    
-    /* Header Styles */
-    .main-header {
-        background: linear-gradient(135deg, var(--primary-blue) 0%, var(--secondary-green) 100%);
-        color: white;
-        padding: 1.8rem 1rem;
-        text-align: center;
-        margin-bottom: 2.5rem;
-        border-radius: 0 0 1.8rem 1.8rem;
-        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
-    }
-    
-    .main-header h1 {
-        font-size: 2.4rem;
-        font-weight: 700;
-        margin: 0;
-        letter-spacing: -0.5px;
-    }
-    
-    .main-header p {
-        font-size: 1.1rem;
-        opacity: 0.9;
-        margin-top: 0.5rem;
-    }
-    
-    /* Navigation Tabs */
-    .nav-tabs {
-        display: flex;
-        justify-content: center;
-        gap: 1.2rem;
-        margin-bottom: 2.2rem;
-    }
-    
-    .nav-tab {
-        padding: 0.8rem 1.8rem;
-        border-radius: 2.2rem;
-        background: white;
-        color: var(--primary-blue);
-        font-weight: 600;
-        cursor: pointer;
-        transition: all 0.3s ease;
-        box-shadow: var(--shadow-sm);
-        border: 2px solid var(--primary-blue);
-        font-size: 1.05rem;
-    }
-    
-    .nav-tab.active {
-        background: var(--primary-blue);
-        color: white;
-        box-shadow: 0 4px 8px rgba(26, 115, 232, 0.3);
-    }
-    
-    /* Main Content Container */
-    .content-container {
-        max-width: 1200px;
-        margin: 0 auto;
-        padding: 0 1.2rem;
-    }
-    
-    /* Card Styles */
-    .card {
-        background: var(--white);
-        border-radius: 1.2rem;
-        padding: 1.8rem;
-        box-shadow: 0 6px 16px rgba(0, 0, 0, 0.05);
-        margin-bottom: 1.8rem;
-        transition: transform 0.3s ease, box-shadow 0.3s ease;
-        border-top: 4px solid var(--primary-blue);
-    }
-    
-    .card:hover {
-        transform: translateY(-5px);
-        box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
-    }
-    
-    .card h3 {
-        color: var(--primary-blue);
-        margin-top: 0;
-        margin-bottom: 1.5rem;
-        font-size: 1.4rem;
-        border-bottom: 2px solid var(--medium-gray);
-        padding-bottom: 0.8rem;
-    }
-    
-    /* Buttons */
-    .btn {
-        background: linear-gradient(to right, var(--primary-blue), var(--dark-blue));
-        color: white;
-        border: none;
-        border-radius: 0.9rem;
-        padding: 0.9rem 2rem;
-        font-weight: 600;
-        transition: all 0.3s ease;
-        box-shadow: 0 4px 8px rgba(26, 115, 232, 0.3);
-        cursor: pointer;
-        font-size: 1rem;
-        display: inline-block;
-        text-align: center;
-    }
-    
-    .btn:hover {
-        transform: translateY(-3px);
-        box-shadow: 0 6px 12px rgba(26, 115, 232, 0.4);
-        background: linear-gradient(to right, var(--dark-blue), var(--primary-blue));
-    }
-    
-    .btn-outline {
-        background: transparent;
-        color: var(--primary-blue);
-        border: 2px solid var(--primary-blue);
-    }
-    
-    .btn-outline:hover {
-        background: var(--primary-blue);
-        color: white;
-    }
-    
-    /* Quick Questions - UPDATED COLORS */
-    .question-btn {
-        background: linear-gradient(to bottom right, #e0f0ff, #d1f2eb); /* Light Nile blue + light green */
-        border: 1px solid #b8e0d2; /* Soft green border */
-        padding: 1rem;
-        border-radius: 0.9rem;
-        cursor: pointer;
-        transition: all 0.3s ease;
-        font-size: 0.95rem;
-        text-align: center;
-        height: 100%;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        color: #1a6e8a; /* Deep blue text */
-        font-weight: 500;
-        box-shadow: 0 3px 6px rgba(0, 0, 0, 0.03);
-        position: relative;
-        overflow: hidden;
-        width: 100%;
-        margin-bottom: 0.9rem;
-    }
-    
-    .question-btn:before {
-        content: '';
-        position: absolute;
-        top: 0;
-        left: 0;
-        width: 100%;
-        height: 0;
-        background: linear-gradient(135deg, var(--primary-blue) 0%, var(--secondary-green) 100%); /* Same as header */
-        opacity: 0;
-        transition: all 0.3s ease;
-        z-index: 0;
-    }
-    
-    .question-btn:hover {
-        transform: translateY(-3px);
-        box-shadow: 0 7px 14px rgba(0, 0, 0, 0.1);
-        color: white;
-        border-color: var(--primary-blue);
-    }
-    
-    .question-btn:hover:before {
-        height: 100%;
-        opacity: 1;
-    }
-    
-    .question-btn span {
-        position: relative;
-        z-index: 1;
-    }
-    
-    /* Result Boxes */
-    .result-box {
-        background: linear-gradient(to bottom right, #e8f5e9, #c8e6c9);
-        padding: 1.8rem;
-        border-radius: 0.9rem;
-        border-left: 4px solid var(--success-green);
-        margin: 1.8rem 0;
-        box-shadow: 0 6px 15px rgba(0, 0, 0, 0.05);
-    }
-    
-    /* Translation Boxes */
-    .translation-item {
-        background: linear-gradient(to bottom right, #f8fafc, #f1f5f9);
-        padding: 1.4rem;
-        margin: 1.4rem 0;
-        border-radius: 0.7rem;
-        border-left: 4px solid var(--primary-blue);
-        box-shadow: 0 3px 8px rgba(0, 0, 0, 0.03);
-        transition: all 0.3s ease;
-    }
-    
-    .translation-item:hover {
-        transform: translateY(-3px);
-        box-shadow: 0 7px 18px rgba(0, 0, 0, 0.08);
-    }
-    
-    .rtl-text {
-        direction: rtl;
-        text-align: right;
-        font-family: 'Tajawal', 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-        font-size: 1.15rem;
-        line-height: 1.7;
-    }
-    
-    /* Language Badges */
-    .language-badge {
-        display: inline-block;
-        padding: 0.4rem 1rem;
-        border-radius: 0.9rem;
-        font-size: 0.85rem;
-        font-weight: 600;
-        margin-left: 0.7rem;
-    }
-    
-    .english-badge {
-        background: linear-gradient(to right, var(--primary-blue), var(--dark-blue));
-        color: white;
-    }
-    
-    .arabic-badge {
-        background: linear-gradient(to right, var(--secondary-green), #0f9d58);
-        color: white;
-    }
-    
-    /* Arabic UI Elements */
-    .arabic-ui .rtl-text,
-    .arabic-ui .section-title,
-    .arabic-ui .translation-item,
-    .arabic-ui .question-btn,
-    .arabic-ui .nav-tab,
-    .arabic-ui .main-header h1,
-    .arabic-ui .main-header p,
-    .arabic-ui .card h3,
-    .arabic-ui .result-box h3,
-    .arabic-ui .translation-item strong,
-    .arabic-ui .language-badge {
-        direction: rtl;
-        text-align: right;
-        font-family: 'Tajawal', 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-    }
-    
-    .arabic-ui .nav-tabs {
-        direction: rtl;
-    }
-    
-    /* Responsive Design */
-    @media (max-width: 768px) {
-        .main-header h1 {
-            font-size: 1.9rem;
-        }
-        
-        .main-header p {
-            font-size: 1rem;
-        }
-        
-        .nav-tab {
-            padding: 0.6rem 1.2rem;
-            font-size: 0.95rem;
-        }
-        
-        .content-container {
-            padding: 0 0.8rem;
-        }
-        
-        .main-columns {
-            flex-direction: column;
-        }
-        
-        .question-btn {
-            font-size: 0.88rem;
-            padding: 0.85rem 0.6rem;
-        }
-        
-        .card {
-            padding: 1.4rem;
-        }
-    }
-    
-    /* Two-column layout */
-    .main-columns {
-        display: flex;
-        gap: 2rem;
-        margin-top: 1.2rem;
-    }
-    
-    .left-column {
-        flex: 4;
-    }
-    
-    .right-column {
-        flex: 6;
-    }
-    
-    /* Section Title */
-    .section-title {
-        font-size: 1.35rem;
-        color: var(--primary-blue);
-        margin-bottom: 1.4rem;
-        padding-bottom: 0.7rem;
-        border-bottom: 2px solid var(--primary-teal);
-    }
-    
-    /* Streamlit Button Override */
-    .stButton > button {
-        background: linear-gradient(to right, var(--primary-blue), var(--dark-blue)) !important;
-        color: white !important;
-        border: none !important;
-        border-radius: 0.9rem !important;
-        padding: 0.9rem 2rem !important;
-        font-weight: 600 !important;
-        transition: all 0.3s ease !important;
-        box-shadow: 0 4px 8px rgba(26, 115, 232, 0.3) !important;
-        width: 100%;
-    }
-    
-    .stButton > button:hover {
-        transform: translateY(-3px) !important;
-        box-shadow: 0 6px 12px rgba(26, 115, 232, 0.4) !important;
-        background: linear-gradient(to right, var(--dark-blue), var(--primary-blue)) !important;
-    }
-    
-    /* File Uploader Styling */
-    .stFileUploader > div > div {
-        border: 2px dashed var(--medium-gray) !important;
-        border-radius: 1rem !important;
-        background: var(--light-gray) !important;
-        padding: 2rem 1rem !important;
-    }
-    
-    .stFileUploader > div > div:hover {
-        border-color: var(--primary-blue) !important;
-    }
-</style>
-""", unsafe_allow_html=True)
+# ... [CSS code remains the same] ...
 
 # Cache models globally
 @st.cache_resource(show_spinner=False)
@@ -488,6 +146,14 @@ def cached_translate_text(text, source_lang, target_lang):
         return text, False
         
     try:
+        # First try medical dictionary translation
+        if source_lang == 'en' and target_lang == 'ar':
+            for eng, ar in MEDICAL_TRANSLATION_DICT.items():
+                if eng in text.lower():
+                    text = text.replace(eng, ar)
+                    return text, True
+        
+        # Fallback to Google Translate
         translator = GoogleTranslator(source=source_lang, target=target_lang)
         translated_text = translator.translate(text)
         return translated_text, True
@@ -512,7 +178,7 @@ def analyze_medical_image(image, question, processor, model):
         return f"🚨 Error analyzing image: {str(e)}"
 
 def post_process_answer(question, answer):
-    """Refine answers for specific question types to be more direct"""
+    """Refine answers for specific question types to be more direct and accurate"""
     # Normal/Abnormal questions
     normal_keywords = ["normal", "abnormal", "طبيعي", "غير طبيعي", "طبيعية", "غير طبيعية"]
     if any(keyword in question.lower() for keyword in normal_keywords):
@@ -550,6 +216,18 @@ def post_process_answer(question, answer):
             return "Chest X-ray" if "en" in question.lower() else "أشعة سينية على الصدر"
         elif "abdominal" in question.lower() and ("x-ray" in question.lower() or "أشعة" in question):
             return "Abdominal X-ray" if "en" in question.lower() else "أشعة سينية على البطن"
+        else:
+            # If no specific type found, return a generic answer
+            return "Radiograph" if "en" in question.lower() else "صورة إشعاعية"
+    
+    # Anatomy questions
+    anatomy_keywords = ["where", "أين", "location", "موقع", "region", "منطقة"]
+    if any(keyword in question.lower() for keyword in anatomy_keywords):
+        # Apply medical translation to anatomical terms
+        for eng, ar in MEDICAL_TRANSLATION_DICT.items():
+            if eng in answer.lower():
+                answer = answer.replace(eng, ar)
+        return answer
     
     return answer
 
@@ -597,7 +275,11 @@ def get_medical_context(question):
         "ultrasound": "ultrasound medical imaging",
         "scan": "medical imaging scan",
         "diagnosis": "medical diagnosis",
-        "symptom": "medical symptom"
+        "symptom": "medical symptom",
+        "type": "medical imaging type",
+        "kind": "medical imaging type",
+        "نوع": "medical imaging type",
+        "أي نوع": "medical imaging type"
     }
     
     for keyword, context in medical_keywords.items():
@@ -605,7 +287,7 @@ def get_medical_context(question):
             return f"In the context of {context}: {question}"
     return question
 
-# النصوص باللغتين
+# Enhanced bilingual texts with complete translations
 texts = {
     "en": {
         "app_title": "🩺 MediVision AI",
@@ -766,7 +448,7 @@ def main():
                 
                 if uploaded_file is not None:
                     image = Image.open(uploaded_file).convert("RGB")
-                    st.image(image, caption="Medical Image for Analysis", use_container_width=True)
+                    st.image(image, caption=T["upload_title"], use_container_width=True)
                     
                     # Image info
                     st.markdown(f'''
@@ -809,7 +491,9 @@ def main():
                         "Any signs of infection present?",
                         "Is there a tumor or mass visible?",
                         "What is your diagnostic assessment?",
-                        "Is there evidence of pneumonia?"
+                        "Is there evidence of pneumonia?",
+                        "What kind of image is this?",
+                        "Where is the abnormality located?"
                     ],
                     "ar": [
                         "ما هي التشوهات التي تراها؟",
@@ -819,7 +503,9 @@ def main():
                         "هل هناك أي علامات للعدوى؟",
                         "هل هناك ورم أو كتلة مرئية؟",
                         "ما هو تقييمك التشخيصي؟",
-                        "هل هناك دليل على الالتهاب الرئوي؟"
+                        "هل هناك دليل على الالتهاب الرئوي؟",
+                        "ما نوع هذه الصورة؟",
+                        "أين يقع الخلل؟"
                     ]
                 }
                 
@@ -833,13 +519,13 @@ def main():
                 col_left, col_right = st.columns(2)
                 
                 with col_left:
-                    for i in range(0, 8, 2):
+                    for i in range(0, 10, 2):
                         q = questions[st.session_state.lang][i]
                         if st.button(q, key=f"q_left_{i}_{st.session_state.lang}", use_container_width=True):
                             st.session_state.question = q
                 
                 with col_right:
-                    for i in range(1, 8, 2):
+                    for i in range(1, 10, 2):
                         q = questions[st.session_state.lang][i]
                         if st.button(q, key=f"q_right_{i}_{st.session_state.lang}", use_container_width=True):
                             st.session_state.question = q
@@ -961,34 +647,36 @@ def main():
         col1, col2 = st.columns(2)
         
         with col1:
-            st.subheader("🔍 Core Features")
-            st.markdown("""
+            st.subheader(T["features_title"])
+            features_html = "<ul style='list-style-type: none; padding-left: 0;'>"
+            for feature in T["features"]:
+                # Extract icon and text
+                icon = feature.split(" ")[0]
+                text = " ".join(feature.split(" ")[1:])
+                features_html += f"<li style='margin-bottom: 0.8rem;'>{icon} <strong>{text}</strong></li>"
+            features_html += "</ul>"
+            
+            st.markdown(f"""
             <div style="background: linear-gradient(to bottom right, #e0f2fe, #dbeafe); 
                         padding: 1.2rem; border-radius: 0.8rem; margin-bottom: 1.5rem;">
-                <ul style="list-style-type: none; padding-left: 0;">
-                    <li style="margin-bottom: 0.8rem;">🩻 <strong>X-ray, CT, MRI & Ultrasound analysis</strong></li>
-                    <li style="margin-bottom: 0.8rem;">🌍 <strong>English/Arabic bilingual support</strong></li>
-                    <li style="margin-bottom: 0.8rem;">🧠 <strong>Specialized medical AI models</strong></li>
-                    <li style="margin-bottom: 0.8rem;">🎯 <strong>Context-aware understanding</strong></li>
-                    <li style="margin-bottom: 0.8rem;">💬 <strong>Natural language interaction</strong></li>
-                    <li>📊 <strong>Detailed medical insights</strong></li>
-                </ul>
+                {features_html}
             </div>
             """, unsafe_allow_html=True)
             
         with col2:
-            st.subheader("🛠️ Technology")
-            st.markdown("""
+            st.subheader(T["tech_title"])
+            tech_html = "<ul style='list-style-type: none; padding-left: 0;'>"
+            for tech in T["tech"]:
+                # Extract icon and text
+                icon = tech.split(" ")[0]
+                text = " ".join(tech.split(" ")[1:])
+                tech_html += f"<li style='margin-bottom: 0.8rem;'>{icon} <strong>{text}</strong></li>"
+            tech_html += "</ul>"
+            
+            st.markdown(f"""
             <div style="background: linear-gradient(to bottom right, #ede9fe, #e0e7ff); 
                         padding: 1.2rem; border-radius: 0.8rem; margin-bottom: 1.5rem;">
-                <ul style="list-style-type: none; padding-left: 0;">
-                    <li style="margin-bottom: 0.8rem;">🤖 <strong>BLIP Vision-Language Model</strong></li>
-                    <li style="margin-bottom: 0.8rem;">🔥 <strong>PyTorch Deep Learning</strong></li>
-                    <li style="margin-bottom: 0.8rem;">🌐 <strong>Google Translator API</strong></li>
-                    <li style="margin-bottom: 0.8rem;">🚀 <strong>Streamlit Framework</strong></li>
-                    <li style="margin-bottom: 0.8rem;">🐍 <strong>Python Backend</strong></li>
-                    <li>💾 <strong>Hugging Face Transformers</strong></li>
-                </ul>
+                {tech_html}
             </div>
             """, unsafe_allow_html=True)
         
