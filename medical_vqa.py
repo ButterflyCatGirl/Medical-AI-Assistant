@@ -690,7 +690,13 @@ def post_process_answer(question, answer):
     return apply_medical_translation(answer)
 
 def apply_medical_translation(answer):
-    """Apply medical translation dictionary"""
+    """Apply medical translation dictionary with special handling for normal/abnormal"""
+    # Handle normal/abnormal explicitly
+    if "Normal" in answer:
+        answer = answer.replace("Normal", "طبيعي")
+    if "Abnormal" in answer:
+        answer = answer.replace("Abnormal", "غير طبيعي")
+    
     if is_arabic(answer):
         # Arabic to English
         for eng, ar in MEDICAL_TRANSLATION_DICT.items():
@@ -1027,7 +1033,7 @@ def main():
                         </div>
                         ''', unsafe_allow_html=True)
                         
-                        # Display question and answer in correct order
+                        # Display question and answer in correct order with proper labels
                         if st.session_state.lang == 'en':
                             # English UI - English first
                             st.markdown(f'''
