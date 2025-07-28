@@ -26,6 +26,7 @@ MEDICAL_TRANSLATION_DICT = {
     "paratracheal": "مجاور للرغامى",
     "mediastinal": "منصفية",
     "pulmonary": "رئوي",
+    "paratracheal area": "منطقة مجاورة للرغامى",  # Added full phrase translation
     
     # Anatomy
     "lung": "رئة",
@@ -525,13 +526,16 @@ def cached_translate_text(text, source_lang, target_lang):
         
     try:
         # Apply medical dictionary translation in both directions
+        # Sort keys by length (longest first) to prevent partial replacements
+        sorted_dict = sorted(MEDICAL_TRANSLATION_DICT.items(), key=lambda x: len(x[0]), reverse=True)
+        
         if source_lang == 'en' and target_lang == 'ar':
-            for eng, ar in MEDICAL_TRANSLATION_DICT.items():
+            for eng, ar in sorted_dict:
                 pattern = r'\b' + re.escape(eng) + r'\b'
                 text = re.sub(pattern, ar, text, flags=re.IGNORECASE)
         elif source_lang == 'ar' and target_lang == 'en':
             # Create reverse dictionary for translation from Arabic to English
-            reverse_dict = {v: k for k, v in MEDICAL_TRANSLATION_DICT.items()}
+            reverse_dict = {v: k for k, v in sorted_dict}
             for ar_term, eng_term in reverse_dict.items():
                 text = text.replace(ar_term, eng_term)
         
@@ -675,16 +679,16 @@ def post_process_answer(question, answer):
 
 def apply_medical_translation(answer):
     """Apply medical translation dictionary to improve accuracy in both directions"""
-    # Create reverse dictionary for Arabic to English translation
-    reverse_dict = {v: k for k, v in MEDICAL_TRANSLATION_DICT.items()}
+    # Sort dictionary keys by length (longest first) to prevent partial replacements
+    sorted_dict = sorted(MEDICAL_TRANSLATION_DICT.items(), key=lambda x: len(x[0]), reverse=True)
     
     if is_arabic(answer):
         # If answer is Arabic: translate medical terms to English
-        for ar_term, eng_term in reverse_dict.items():
-            answer = answer.replace(ar_term, eng_term)
+        for eng, ar in sorted_dict:
+            answer = answer.replace(ar, eng)
     else:
         # If answer is English: translate medical terms to Arabic
-        for eng, ar in MEDICAL_TRANSLATION_DICT.items():
+        for eng, ar in sorted_dict:
             pattern = r'\b' + re.escape(eng) + r'\b'
             answer = re.sub(pattern, ar, answer, flags=re.IGNORECASE)
     
@@ -951,7 +955,7 @@ def main():
                         "هل هناك ورم أو كتلة مرئية؟",
                         "ما هو تقييمك التشخيصي؟",
                         "هل هناك دليل على الالتهاب الرئوي؟",
-                        "ما نوع هذه الصورة؟",
+                        "ما نوع هذه الصورة؟",  # Fixed translation
                         "أين يقع الخلل؟"
                     ]
                 }
