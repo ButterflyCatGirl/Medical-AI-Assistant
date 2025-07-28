@@ -428,6 +428,28 @@ st.markdown("""
         direction: rtl;
     }
     
+    .arabic-ui .card,
+    .arabic-ui .result-box,
+    .arabic-ui .translation-item,
+    .arabic-ui .btn,
+    .arabic-ui .question-btn {
+        text-align: right;
+        direction: rtl;
+    }
+    
+    .arabic-ui .main-header h1,
+    .arabic-ui .main-header p {
+        font-family: 'Tajawal', sans-serif;
+        font-weight: 700;
+    }
+    
+    .arabic-ui .section-title {
+        border-right: 2px solid var(--primary-teal);
+        border-left: none;
+        padding-right: 0.7rem;
+        padding-left: 0;
+    }
+    
     /* Responsive Design */
     @media (max-width: 768px) {
         .main-header h1 {
@@ -612,30 +634,48 @@ def is_arabic(text):
     arabic_pattern = re.compile(r'[\u0600-\u06FF\u0750-\u077F\u08A0-\u08FF]+')
     return bool(arabic_pattern.search(text))
 
-def analyze_medical_image(image, question, processor, model):
-    try:
-        inputs = processor(image, question, return_tensors="pt")
-        with torch.no_grad():
-            out = model.generate(**inputs, max_length=100, num_beams=5)
-        answer = processor.decode(out[0], skip_special_tokens=True)
-        
-        # Post-process answer for specific question types
-        return post_process_answer(question, answer)
-    except Exception as e:
-        return f"🚨 Error analyzing image: {str(e)}"
+def apply_medical_translation(answer, lang):
+    """Apply medical translation dictionary with special handling for normal/abnormal"""
+    is_arabic_lang = lang == 'ar'
+    
+    # Handle normal/abnormal explicitly
+    if is_arabic_lang:
+        if "Normal" in answer:
+            answer = answer.replace("Normal", "طبيعي")
+        if "Abnormal" in answer:
+            answer = answer.replace("Abnormal", "غير طبيعي")
+    else:
+        if "طبيعي" in answer:
+            answer = answer.replace("طبيعي", "Normal")
+        if "غير طبيعي" in answer:
+            answer = answer.replace("غير طبيعي", "Abnormal")
+    
+    # Apply dictionary translation
+    if is_arabic_lang:
+        # English to Arabic
+        for eng, ar in MEDICAL_TRANSLATION_DICT.items():
+            pattern = r'\b' + re.escape(eng) + r'\b'
+            answer = re.sub(pattern, ar, answer, flags=re.IGNORECASE)
+    else:
+        # Arabic to English
+        for eng, ar in MEDICAL_TRANSLATION_DICT.items():
+            answer = answer.replace(ar, eng)
+    
+    return answer
 
-def post_process_answer(question, answer):
+def post_process_answer(question, answer, lang):
     """Refine answers for specific question types"""
     question_lower = question.lower()
+    is_arabic_lang = lang == 'ar'
     
     # 1. Normal/Abnormal questions - SINGLE WORD ANSWER
     normal_keywords = ["normal", "abnormal", "طبيعي", "غير طبيعي", "طبيعية", "غير طبيعية"]
     if any(keyword in question_lower for keyword in normal_keywords):
         # Direct match for normal/abnormal terms
         if "abnormal" in answer.lower() or "غير طبيعي" in answer or "غير طبيعية" in answer:
-            return "Abnormal" if "en" in question_lower else "غير طبيعي"
+            return "غير طبيعي" if is_arabic_lang else "Abnormal"
         elif "normal" in answer.lower() or "طبيعي" in answer or "طبيعية" in answer:
-            return "Normal" if "en" in question_lower else "طبيعي"
+            return "طبيعي" if is_arabic_lang else "Normal"
         
         # Infer from context using medical indicators
         abnormal_indicators = [
@@ -645,9 +685,9 @@ def post_process_answer(question, answer):
         ]
         
         if any(indicator in answer.lower() for indicator in abnormal_indicators):
-            return "Abnormal" if "en" in question_lower else "غير طبيعي"
+            return "غير طبيعي" if is_arabic_lang else "Abnormal"
         else:
-            return "Normal" if "en" in question_lower else "طبيعي"
+            return "طبيعي" if is_arabic_lang else "Normal"
     
     # 2. Image type questions - IMPROVED RECOGNITION
     type_keywords = ["what type", "what kind", "نوع", "نوع الصورة", "نوع الأشعة", "أي نوع"]
@@ -655,26 +695,26 @@ def post_process_answer(question, answer):
         # Improved recognition logic
         if "chest" in answer.lower() or "صدر" in answer:
             if "x-ray" in answer.lower() or "xray" in answer.lower() or "أشعة" in answer:
-                return "Chest X-ray" if "en" in question_lower else "أشعة سينية على الصدر"
+                return "أشعة سينية على الصدر" if is_arabic_lang else "Chest X-ray"
             elif "ct" in answer.lower() or "computed tomography" in answer.lower() or "مقطعي" in answer:
-                return "Chest CT scan" if "en" in question_lower else "تصوير مقطعي للصدر"
+                return "تصوير مقطعي للصدر" if is_arabic_lang else "Chest CT scan"
         elif "abdominal" in answer.lower() or "بطن" in answer:
             if "x-ray" in answer.lower() or "xray" in answer.lower() or "أشعة" in answer:
-                return "Abdominal X-ray" if "en" in question_lower else "أشعة سينية على البطن"
+                return "أشعة سينية على البطن" if is_arabic_lang else "Abdominal X-ray"
             elif "ct" in answer.lower() or "computed tomography" in answer.lower() or "مقطعي" in answer:
-                return "Abdominal CT scan" if "en" in question_lower else "تصوير مقطعي للبطن"
+                return "تصوير مقطعي للبطن" if is_arabic_lang else "Abdominal CT scan"
         elif "bone" in answer.lower() or "عظام" in answer:
-            return "Bone X-ray" if "en" in question_lower else "أشعة سينية على العظام"
+            return "أشعة سينية على العظام" if is_arabic_lang else "Bone X-ray"
         elif "x-ray" in answer.lower() or "xray" in answer.lower() or "أشعة" in answer:
-            return "X-ray" if "en" in question_lower else "أشعة سينية"
+            return "أشعة سينية" if is_arabic_lang else "X-ray"
         elif "ct" in answer.lower() or "computed tomography" in answer.lower() or "مقطعي" in answer:
-            return "CT scan" if "en" in question_lower else "تصوير مقطعي"
+            return "تصوير مقطعي" if is_arabic_lang else "CT scan"
         elif "mri" in answer.lower() or "magnetic resonance" in answer.lower() or "رنين" in answer:
-            return "MRI scan" if "en" in question_lower else "تصوير بالرنين المغناطيسي"
+            return "تصوير بالرنين المغناطيسي" if is_arabic_lang else "MRI scan"
         elif "ultrasound" in answer.lower() or "موجات" in answer:
-            return "Ultrasound" if "en" in question_lower else "موجات فوق صوتية"
+            return "موجات فوق صوتية" if is_arabic_lang else "Ultrasound"
         else:
-            return "Radiograph" if "en" in question_lower else "صورة إشعاعية"
+            return "صورة إشعاعية" if is_arabic_lang else "Radiograph"
     
     # 3. Location questions - IMPROVED TRANSLATION
     location_keywords = ["where", "أين", "location", "موقع", "region", "منطقة"]
@@ -690,33 +730,26 @@ def post_process_answer(question, answer):
                 answer = re.sub(rf'\b{re.escape(eng)}\b', ar, answer, flags=re.IGNORECASE)
         
         # Format location response
-        if is_arabic(question):
+        if is_arabic_lang:
             return "الموقع: " + answer
         else:
             return "Location: " + answer
     
-    # 4. General medical terms translation
-    return apply_medical_translation(answer)
+    # 4. Apply general medical terms translation
+    return apply_medical_translation(answer, lang)
 
-def apply_medical_translation(answer):
-    """Apply medical translation dictionary with special handling for normal/abnormal"""
-    # Handle normal/abnormal explicitly
-    if "Normal" in answer:
-        answer = answer.replace("Normal", "طبيعي")
-    if "Abnormal" in answer:
-        answer = answer.replace("Abnormal", "غير طبيعي")
-    
-    if is_arabic(answer):
-        # Arabic to English
-        for eng, ar in MEDICAL_TRANSLATION_DICT.items():
-            answer = answer.replace(ar, eng)
-    else:
-        # English to Arabic
-        for eng, ar in MEDICAL_TRANSLATION_DICT.items():
-            pattern = r'\b' + re.escape(eng) + r'\b'
-            answer = re.sub(pattern, ar, answer, flags=re.IGNORECASE)
-    
-    return answer
+def analyze_medical_image(image, question, processor, model):
+    try:
+        inputs = processor(image, question, return_tensors="pt")
+        with torch.no_grad():
+            out = model.generate(**inputs, max_length=100, num_beams=5)
+        answer = processor.decode(out[0], skip_special_tokens=True)
+        
+        # Post-process answer with language context
+        return post_process_answer(question, answer, st.session_state.lang)
+    except Exception as e:
+        error_msg = f"🚨 خطأ في تحليل الصورة: {str(e)}" if st.session_state.lang == 'ar' else f"🚨 Error analyzing image: {str(e)}"
+        return error_msg
 
 def get_medical_context(question):
     medical_keywords = {
@@ -763,7 +796,7 @@ texts = {
         "analyze_button": "🔬 Analyze Medical Image",
         "results_title": "🔍 Medical Analysis Results",
         "question_label": "Question",
-        "analysis_label": "Answer",  # Changed from Analysis to Answer
+        "analysis_label": "Answer",
         "disclaimer_title": "⚠️ Medical Disclaimer",
         "disclaimer_content": "This AI analysis is for educational purposes only. Always consult with qualified healthcare professionals for medical decisions. AI responses may contain errors and should not replace professional medical judgment.",
         "about_title": "ℹ️ About MediVision AI",
@@ -806,7 +839,7 @@ texts = {
         "analyze_button": "🔬 تحليل الصورة الطبية",
         "results_title": "🔍 نتائج التحليل الطبي",
         "question_label": "السؤال",
-        "analysis_label": "الجواب",  # Changed from التحليل to الجواب
+        "analysis_label": "الجواب",
         "disclaimer_title": "⚠️ تنبيه طبي",
         "disclaimer_content": "هذا التحليل بالذكاء الاصطناعي لأغراض تعليمية فقط. استشر دائمًا متخصصي الرعاية الصحية المؤهلين لاتخاذ القرارات الطبية. قد تحتوي استجابات الذكاء الاصطناعي على أخطاء ولا ينبغي أن تحل محل الحكم الطبي المهني.",
         "about_title": "ℹ️ حول تطبيق رؤية طبية AI",
@@ -1029,7 +1062,7 @@ def main():
                             arabic_answer = analyze_medical_image(image, contextualized_question, processor, model)
                         
                         # Apply medical translation dictionary
-                        arabic_answer = apply_medical_translation(arabic_answer)
+                        arabic_answer = apply_medical_translation(arabic_answer, st.session_state.lang)
                         
                         # Translate to English with quality check
                         with st.spinner("🌐 Translating results..." if st.session_state.lang == 'en' else "🌐 جاري ترجمة النتائج..."):
@@ -1042,35 +1075,67 @@ def main():
                         </div>
                         ''', unsafe_allow_html=True)
                         
-                        # English Section
-                        st.markdown(f'''
-                        <div class="translation-item">
-                            <div style="display: flex; justify-content: space-between; align-items: center;">
-                                <div>
-                                    <strong>{T["question_label"]}:</strong> {display_question_en}
+                        # Show Arabic first if Arabic UI is selected
+                        if st.session_state.lang == 'ar':
+                            # Arabic Section
+                            st.markdown(f'''
+                            <div class="translation-item rtl-text">
+                                <div style="display: flex; justify-content: space-between; align-items: center; direction: rtl;">
+                                    <div>
+                                        <strong>{T["question_label"]}:</strong> {display_question_ar}
+                                    </div>
+                                    <span class="language-badge arabic-badge">العربية</span>
                                 </div>
-                                <span class="language-badge english-badge">EN</span>
-                            </div>
-                            <div style="margin-top: 10px;">
-                                <strong>{T["analysis_label"]}:</strong> {english_answer}
-                            </div>
-                        </div>
-                        ''', unsafe_allow_html=True)
-                        
-                        # Arabic Section
-                        st.markdown(f'''
-                        <div class="translation-item rtl-text">
-                            <div style="display: flex; justify-content: space-between; align-items: center; direction: rtl;">
-                                <div>
-                                    <strong>{T["question_label"]}:</strong> {display_question_ar}
+                                <div style="margin-top: 10px; direction: rtl;">
+                                    <strong>{T["analysis_label"]}:</strong> {arabic_answer}
                                 </div>
-                                <span class="language-badge arabic-badge">AR</span>
                             </div>
-                            <div style="margin-top: 10px; direction: rtl;">
-                                <strong>{T["analysis_label"]}:</strong> {arabic_answer}
+                            ''', unsafe_allow_html=True)
+                            
+                            # English Section
+                            st.markdown(f'''
+                            <div class="translation-item">
+                                <div style="display: flex; justify-content: space-between; align-items: center;">
+                                    <div>
+                                        <strong>{T["question_label"]}:</strong> {display_question_en}
+                                    </div>
+                                    <span class="language-badge english-badge">English</span>
+                                </div>
+                                <div style="margin-top: 10px;">
+                                    <strong>{T["analysis_label"]}:</strong> {english_answer}
+                                </div>
                             </div>
-                        </div>
-                        ''', unsafe_allow_html=True)
+                            ''', unsafe_allow_html=True)
+                        else:
+                            # English Section
+                            st.markdown(f'''
+                            <div class="translation-item">
+                                <div style="display: flex; justify-content: space-between; align-items: center;">
+                                    <div>
+                                        <strong>{T["question_label"]}:</strong> {display_question_en}
+                                    </div>
+                                    <span class="language-badge english-badge">English</span>
+                                </div>
+                                <div style="margin-top: 10px;">
+                                    <strong>{T["analysis_label"]}:</strong> {english_answer}
+                                </div>
+                            </div>
+                            ''', unsafe_allow_html=True)
+                            
+                            # Arabic Section
+                            st.markdown(f'''
+                            <div class="translation-item rtl-text">
+                                <div style="display: flex; justify-content: space-between; align-items: center; direction: rtl;">
+                                    <div>
+                                        <strong>{T["question_label"]}:</strong> {display_question_ar}
+                                    </div>
+                                    <span class="language-badge arabic-badge">العربية</span>
+                                </div>
+                                <div style="margin-top: 10px; direction: rtl;">
+                                    <strong>{T["analysis_label"]}:</strong> {arabic_answer}
+                                </div>
+                            </div>
+                            ''', unsafe_allow_html=True)
                         
                         # Medical disclaimer
                         st.info(f"""
