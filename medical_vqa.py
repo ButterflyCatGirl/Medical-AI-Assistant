@@ -837,7 +837,7 @@ texts = {
         "professional_content": "This is a demonstration application for educational and research purposes only. Always consult with qualified healthcare professionals for medical decisions, diagnosis, and treatment. AI-generated analysis should never replace professional medical judgment."
     },
     "ar": {
-        "app_title": "🩺 رؤية طبية AI",
+        "app_title": "🩺 رؤية طبية بالذكاء الإصطناعي",
         "app_subtitle": "تحليل متقدم للصور الطبية مع دعم متعدد اللغات",
         "tab_analysis": "🔬 التحليل الطبي",
         "tab_about": "ℹ️ حول التطبيق",
