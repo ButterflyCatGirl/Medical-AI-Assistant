@@ -26,7 +26,7 @@ MEDICAL_TRANSLATION_DICT = {
     "paratracheal": "مجاور للرغامى",
     "mediastinal": "منصفية",
     "pulmonary": "رئوي",
-    "paratracheal area": "منطقة مجاورة للرغامى",  # Added full phrase
+    "paratracheal area": "منطقة مجاورة للرغامى",
     
     # Anatomy
     "lung": "رئة",
@@ -103,6 +103,18 @@ MEDICAL_TRANSLATION_DICT = {
     "mammogram": "تصوير الثدي الشعاعي",
     "imaging": "تصوير",
     "scan": "فحص",
+    
+    # Common Questions
+    "Is this result normal or abnormal?": "هل هذه النتيجة طبيعية أم غير طبيعية؟",
+    "What kind of image is this?": "ما نوع هذه الصورة؟",
+    "Are there any fractures visible?": "هل هناك أي كسور مرئية؟",
+    "Describe the key medical findings": "صف النتائج الطبية الرئيسية",
+    "Any signs of infection present?": "هل هناك أي علامات للعدوى؟",
+    "Is there a tumor or mass visible?": "هل هناك ورم أو كتلة مرئية؟",
+    "What is your diagnostic assessment?": "ما هو تقييمك التشخيصي؟",
+    "Is there evidence of pneumonia?": "هل هناك دليل على الالتهاب الرئوي؟",
+    "Where is the abnormality located?": "أين يقع الخلل؟",
+    "What is the most significant finding?": "ما هو الاكتشاف الأكثر أهمية؟"
 }
 
 # Location Terms Dictionary for anatomical positions
@@ -525,19 +537,37 @@ def cached_translate_text(text, source_lang, target_lang):
         return text, False
         
     try:
-        # Apply medical dictionary translation first
+        # First check if we have a full translation in the dictionary
         if source_lang == 'en' and target_lang == 'ar':
-            for eng, ar in MEDICAL_TRANSLATION_DICT.items():
-                if eng.lower() in text.lower():
-                    return text.replace(eng, ar), True
+            if text in MEDICAL_TRANSLATION_DICT:
+                return MEDICAL_TRANSLATION_DICT[text], True
         elif source_lang == 'ar' and target_lang == 'en':
-            for eng, ar in MEDICAL_TRANSLATION_DICT.items():
-                if ar in text:
-                    return text.replace(ar, eng), True
+            # Create reverse dictionary for translation from Arabic to English
+            reverse_dict = {v: k for k, v in MEDICAL_TRANSLATION_DICT.items()}
+            if text in reverse_dict:
+                return reverse_dict[text], True
         
-        # Fallback to Google Translate
-        translator = GoogleTranslator(source=source_lang, target=target_lang)
-        translated_text = translator.translate(text)
+        # Apply medical dictionary translation for individual words
+        words = text.split()
+        translated_words = []
+        for word in words:
+            if source_lang == 'en' and target_lang == 'ar':
+                translated_words.append(MEDICAL_TRANSLATION_DICT.get(word, word))
+            elif source_lang == 'ar' and target_lang == 'en':
+                # Create reverse dictionary for translation from Arabic to English
+                reverse_dict = {v: k for k, v in MEDICAL_TRANSLATION_DICT.items()}
+                translated_words.append(reverse_dict.get(word, word))
+            else:
+                translated_words.append(word)
+        
+        translated_text = " ".join(translated_words)
+        
+        # Fallback to Google Translate if we didn't find a translation
+        if translated_text == text:
+            translator = GoogleTranslator(source=source_lang, target=target_lang)
+            translated_text = translator.translate(text)
+            return translated_text, True
+        
         return translated_text, True
     except Exception as e:
         return text, False
