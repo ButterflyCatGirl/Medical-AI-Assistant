@@ -26,7 +26,7 @@ MEDICAL_TRANSLATION_DICT = {
     "paratracheal": "مجاور للرغامى",
     "mediastinal": "منصفية",
     "pulmonary": "رئوي",
-    "paratracheal area": "منطقة مجاورة للرغامى",  # Added full phrase translation
+    "paratracheal area": "منطقة مجاورة للرغامى",  # Added full phrase
     
     # Anatomy
     "lung": "رئة",
@@ -525,34 +525,29 @@ def cached_translate_text(text, source_lang, target_lang):
         return text, False
         
     try:
-        # Apply medical dictionary translation in both directions
-        # Sort keys by length (longest first) to prevent partial replacements
-        sorted_dict = sorted(MEDICAL_TRANSLATION_DICT.items(), key=lambda x: len(x[0]), reverse=True)
-        
+        # Apply medical dictionary translation first
         if source_lang == 'en' and target_lang == 'ar':
-            for eng, ar in sorted_dict:
-                pattern = r'\b' + re.escape(eng) + r'\b'
-                text = re.sub(pattern, ar, text, flags=re.IGNORECASE)
+            for eng, ar in MEDICAL_TRANSLATION_DICT.items():
+                if eng.lower() in text.lower():
+                    return text.replace(eng, ar), True
         elif source_lang == 'ar' and target_lang == 'en':
-            # Create reverse dictionary for translation from Arabic to English
-            reverse_dict = {v: k for k, v in sorted_dict}
-            for ar_term, eng_term in reverse_dict.items():
-                text = text.replace(ar_term, eng_term)
+            for eng, ar in MEDICAL_TRANSLATION_DICT.items():
+                if ar in text:
+                    return text.replace(ar, eng), True
         
-        # Fallback to Google Translate for non-medical words
+        # Fallback to Google Translate
         translator = GoogleTranslator(source=source_lang, target=target_lang)
         translated_text = translator.translate(text)
         return translated_text, True
     except Exception as e:
-        st.error(f"Translation error: {str(e)}")
         return text, False
 
-def is_valid_translation(text):
-    """Check if translation is valid (not gibberish)"""
-    # Check for common error patterns
+def is_valid_translation(text, target_lang):
+    """Check if translation is valid"""
     if len(text) == 0:
         return False
         
+    # Check for common error patterns
     error_patterns = [
         r'[A-Za-z]{15,}',  # Long sequences of Latin letters
         r'\b\w{1}\b',       # Single-letter words
@@ -563,20 +558,20 @@ def is_valid_translation(text):
         if re.search(pattern, text):
             return False
     
-    # Count ratio of valid characters
-    if is_arabic(text):
+    # Check character ratio based on target language
+    if target_lang == 'ar':
         arabic_chars = len(re.findall(r'[\u0600-\u06FF]', text))
-        return arabic_chars / len(text) > 0.3 if text else False
+        return arabic_chars / len(text) > 0.5 if text else False
     else:
         latin_chars = len(re.findall(r'[A-Za-z]', text))
-        return latin_chars / len(text) > 0.3 if text else False
+        return latin_chars / len(text) > 0.5 if text else False
 
 def ensure_translation_quality(text, source_lang, target_lang, max_retries=2):
     """Ensure translation quality with retry mechanism"""
     original_text = text
     for attempt in range(max_retries):
         translated, success = cached_translate_text(text, source_lang, target_lang)
-        if success and is_valid_translation(translated):
+        if success and is_valid_translation(translated, target_lang):
             return translated
         time.sleep(0.3)  # Brief delay before retry
     
@@ -603,7 +598,7 @@ def post_process_answer(question, answer):
     """Refine answers for specific question types"""
     question_lower = question.lower()
     
-    # 1. Normal/Abnormal questions
+    # 1. Normal/Abnormal questions - SINGLE WORD ANSWER
     normal_keywords = ["normal", "abnormal", "طبيعي", "غير طبيعي", "طبيعية", "غير طبيعية"]
     if any(keyword in question_lower for keyword in normal_keywords):
         if "abnormal" in answer.lower() or "غير طبيعي" in answer or "غير طبيعية" in answer:
@@ -623,7 +618,7 @@ def post_process_answer(question, answer):
         else:
             return "Normal" if "en" in question_lower else "طبيعي"
     
-    # 2. Image type questions
+    # 2. Image type questions - SHORT ANSWER
     type_keywords = ["what type", "what kind", "نوع", "نوع الصورة", "نوع الأشعة", "أي نوع"]
     if any(keyword in question_lower for keyword in type_keywords):
         if "x-ray" in answer.lower() or "xray" in answer.lower() or "أشعة" in answer:
@@ -641,7 +636,7 @@ def post_process_answer(question, answer):
         else:
             return "Radiograph" if "en" in question_lower else "صورة إشعاعية"
     
-    # 3. Location questions (IMPROVED VERSION)
+    # 3. Location questions - IMPROVED TRANSLATION
     location_keywords = ["where", "أين", "location", "موقع", "region", "منطقة"]
     if any(keyword in question_lower for keyword in location_keywords):
         # Apply location terms translation
@@ -656,61 +651,26 @@ def post_process_answer(question, answer):
         
         # Format location response
         if is_arabic(question):
-            if "الرئة" in answer or "رئ" in answer:
-                return "الموقع: في المنطقة الرئوية - " + answer
-            elif "العظم" in answer or "عظم" in answer:
-                return "الموقع: في المنطقة العظمية - " + answer
-            elif "القلب" in answer:
-                return "الموقع: في المنطقة القلبية - " + answer
-            else:
-                return "الموقع: " + answer
+            return "الموقع: " + answer
         else:
-            if "lung" in answer.lower():
-                return "Location: Pulmonary area - " + answer
-            elif "bone" in answer.lower():
-                return "Location: Bony area - " + answer
-            elif "heart" in answer.lower():
-                return "Location: Cardiac area - " + answer
-            else:
-                return "Location: " + answer
+            return "Location: " + answer
     
     # 4. General medical terms translation
     return apply_medical_translation(answer)
 
 def apply_medical_translation(answer):
-    """Apply medical translation dictionary to improve accuracy in both directions"""
-    # Sort dictionary keys by length (longest first) to prevent partial replacements
-    sorted_dict = sorted(MEDICAL_TRANSLATION_DICT.items(), key=lambda x: len(x[0]), reverse=True)
-    
+    """Apply medical translation dictionary"""
     if is_arabic(answer):
-        # If answer is Arabic: translate medical terms to English
-        for eng, ar in sorted_dict:
+        # Arabic to English
+        for eng, ar in MEDICAL_TRANSLATION_DICT.items():
             answer = answer.replace(ar, eng)
     else:
-        # If answer is English: translate medical terms to Arabic
-        for eng, ar in sorted_dict:
+        # English to Arabic
+        for eng, ar in MEDICAL_TRANSLATION_DICT.items():
             pattern = r'\b' + re.escape(eng) + r'\b'
             answer = re.sub(pattern, ar, answer, flags=re.IGNORECASE)
     
     return answer
-
-def ensure_arabic_answer(answer):
-    if is_arabic(answer):
-        return answer, False
-    
-    # First apply medical dictionary translation
-    medical_translated = apply_medical_translation(answer)
-    
-    # If medical translation changed the answer, return it
-    if medical_translated != answer:
-        return medical_translated, True
-    
-    # Fallback to Google Translate with quality check
-    try:
-        translated = ensure_translation_quality(answer, 'en', 'ar')
-        return translated, True
-    except:
-        return answer, False
 
 def get_medical_context(question):
     medical_keywords = {
@@ -935,28 +895,28 @@ def main():
                 # Suggested Questions - Fast rendering with gradient buttons
                 questions = {
                     "en": [
-                        "What abnormalities do you see?",
-                        "Are there any fractures visible?",
                         "Is this result normal or abnormal?",
+                        "What kind of image is this?",
+                        "Are there any fractures visible?",
                         "Describe the key medical findings",
                         "Any signs of infection present?",
                         "Is there a tumor or mass visible?",
                         "What is your diagnostic assessment?",
                         "Is there evidence of pneumonia?",
-                        "What kind of image is this?",
-                        "Where is the abnormality located?"
+                        "Where is the abnormality located?",
+                        "What is the most significant finding?"
                     ],
                     "ar": [
-                        "ما هي التشوهات التي تراها؟",
-                        "هل هناك أي كسور مرئية؟",
                         "هل هذه النتيجة طبيعية أم غير طبيعية؟",
+                        "ما نوع هذه الصورة؟",
+                        "هل هناك أي كسور مرئية؟",
                         "صف النتائج الطبية الرئيسية",
                         "هل هناك أي علامات للعدوى؟",
                         "هل هناك ورم أو كتلة مرئية؟",
                         "ما هو تقييمك التشخيصي؟",
                         "هل هناك دليل على الالتهاب الرئوي؟",
-                        "ما نوع هذه الصورة؟",  # Fixed translation
-                        "أين يقع الخلل؟"
+                        "أين يقع الخلل؟",
+                        "ما هو الاكتشاف الأكثر أهمية؟"
                     ]
                 }
                 
@@ -1025,12 +985,9 @@ def main():
                         # Apply medical translation dictionary
                         arabic_answer = apply_medical_translation(arabic_answer)
                         
-                        # Ensure answer is in Arabic
-                        arabic_answer_display, arabic_translated = ensure_arabic_answer(arabic_answer)
-                        
                         # Translate to English with quality check
                         with st.spinner("🌐 Translating results..." if st.session_state.lang == 'en' else "🌐 جاري ترجمة النتائج..."):
-                            english_answer = ensure_translation_quality(arabic_answer_display, "ar", "en")
+                            english_answer = ensure_translation_quality(arabic_answer, "ar", "en")
                         
                         # Display results in styled boxes
                         st.markdown(f'''
@@ -1068,7 +1025,7 @@ def main():
                         st.markdown(f'''
                         <div class="translation-item rtl-text">
                             <strong>{T["analysis_label"]}:</strong> 
-                            {arabic_answer_display}
+                            {arabic_answer}
                             <span class="language-badge arabic-badge">AR</span>
                         </div>
                         ''', unsafe_allow_html=True)
