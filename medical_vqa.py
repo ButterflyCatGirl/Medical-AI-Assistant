@@ -104,6 +104,30 @@ MEDICAL_TRANSLATION_DICT = {
     "scan": "فحص",
 }
 
+# Location Terms Dictionary for anatomical positions
+LOCATION_TERMS = {
+    "right": "يمين",
+    "left": "يسار",
+    "upper": "علوي",
+    "lower": "سفلي",
+    "anterior": "أمامي",
+    "posterior": "خلفي",
+    "lateral": "جانبي",
+    "medial": "إنسي",
+    "proximal": "قريب",
+    "distal": "بعيد",
+    "superior": "علوي",
+    "inferior": "سفلي",
+    "central": "مركزي",
+    "peripheral": "محيطي",
+    "right side": "الجانب الأيمن",
+    "left side": "الجانب الأيسر",
+    "top": "أعلى",
+    "bottom": "أسفل",
+    "middle": "وسط",
+    "side": "جانب"
+}
+
 # Configure page
 st.set_page_config(
     page_title="MediVision AI - Smart Medical Analysis",
@@ -500,20 +524,60 @@ def cached_translate_text(text, source_lang, target_lang):
         return text, False
         
     try:
-        # First try medical dictionary translation
+        # Apply medical dictionary translation in both directions
         if source_lang == 'en' and target_lang == 'ar':
             for eng, ar in MEDICAL_TRANSLATION_DICT.items():
-                if eng in text.lower():
-                    text = text.replace(eng, ar)
-                    return text, True
+                pattern = r'\b' + re.escape(eng) + r'\b'
+                text = re.sub(pattern, ar, text, flags=re.IGNORECASE)
+        elif source_lang == 'ar' and target_lang == 'en':
+            # Create reverse dictionary for translation from Arabic to English
+            reverse_dict = {v: k for k, v in MEDICAL_TRANSLATION_DICT.items()}
+            for ar_term, eng_term in reverse_dict.items():
+                text = text.replace(ar_term, eng_term)
         
-        # Fallback to Google Translate
+        # Fallback to Google Translate for non-medical words
         translator = GoogleTranslator(source=source_lang, target=target_lang)
         translated_text = translator.translate(text)
         return translated_text, True
     except Exception as e:
         st.error(f"Translation error: {str(e)}")
         return text, False
+
+def is_valid_translation(text):
+    """Check if translation is valid (not gibberish)"""
+    # Check for common error patterns
+    if len(text) == 0:
+        return False
+        
+    error_patterns = [
+        r'[A-Za-z]{15,}',  # Long sequences of Latin letters
+        r'\b\w{1}\b',       # Single-letter words
+        r'\d{5,}',          # Long digit sequences
+    ]
+    
+    for pattern in error_patterns:
+        if re.search(pattern, text):
+            return False
+    
+    # Count ratio of valid characters
+    if is_arabic(text):
+        arabic_chars = len(re.findall(r'[\u0600-\u06FF]', text))
+        return arabic_chars / len(text) > 0.3 if text else False
+    else:
+        latin_chars = len(re.findall(r'[A-Za-z]', text))
+        return latin_chars / len(text) > 0.3 if text else False
+
+def ensure_translation_quality(text, source_lang, target_lang, max_retries=2):
+    """Ensure translation quality with retry mechanism"""
+    original_text = text
+    for attempt in range(max_retries):
+        translated, success = cached_translate_text(text, source_lang, target_lang)
+        if success and is_valid_translation(translated):
+            return translated
+        time.sleep(0.3)  # Brief delay before retry
+    
+    # Fallback: return original text if translation fails
+    return original_text
 
 def is_arabic(text):
     arabic_pattern = re.compile(r'[\u0600-\u06FF\u0750-\u077F\u08A0-\u08FF]+')
@@ -532,17 +596,18 @@ def analyze_medical_image(image, question, processor, model):
         return f"🚨 Error analyzing image: {str(e)}"
 
 def post_process_answer(question, answer):
-    """Refine answers for specific question types to be more direct and accurate"""
-    # Normal/Abnormal questions
+    """Refine answers for specific question types"""
+    question_lower = question.lower()
+    
+    # 1. Normal/Abnormal questions
     normal_keywords = ["normal", "abnormal", "طبيعي", "غير طبيعي", "طبيعية", "غير طبيعية"]
-    if any(keyword in question.lower() for keyword in normal_keywords):
-        # Check for explicit answers first
+    if any(keyword in question_lower for keyword in normal_keywords):
         if "abnormal" in answer.lower() or "غير طبيعي" in answer or "غير طبيعية" in answer:
-            return "Abnormal" if "en" in question.lower() else "غير طبيعي"
+            return "Abnormal" if "en" in question_lower else "غير طبيعي"
         elif "normal" in answer.lower() or "طبيعي" in answer or "طبيعية" in answer:
-            return "Normal" if "en" in question.lower() else "طبيعي"
+            return "Normal" if "en" in question_lower else "طبيعي"
         
-        # Infer from context for more accurate determination
+        # Infer from context
         abnormal_indicators = [
             "fracture", "pneumonia", "tumor", "infection", "effusion", 
             "opacity", "consolidation", "edema", "mass", "nodule",
@@ -550,49 +615,79 @@ def post_process_answer(question, answer):
         ]
         
         if any(indicator in answer.lower() for indicator in abnormal_indicators):
-            return "Abnormal" if "en" in question.lower() else "غير طبيعي"
+            return "Abnormal" if "en" in question_lower else "غير طبيعي"
         else:
-            return "Normal" if "en" in question.lower() else "طبيعي"
+            return "Normal" if "en" in question_lower else "طبيعي"
     
-    # Image type questions
+    # 2. Image type questions
     type_keywords = ["what type", "what kind", "نوع", "نوع الصورة", "نوع الأشعة", "أي نوع"]
-    if any(keyword in question.lower() for keyword in type_keywords):
-        # Try to extract a direct answer
+    if any(keyword in question_lower for keyword in type_keywords):
         if "x-ray" in answer.lower() or "xray" in answer.lower() or "أشعة" in answer:
-            return "X-ray" if "en" in question.lower() else "أشعة سينية"
+            return "X-ray" if "en" in question_lower else "أشعة سينية"
         elif "ct" in answer.lower() or "computed tomography" in answer.lower() or "مقطعي" in answer:
-            return "CT scan" if "en" in question.lower() else "تصوير مقطعي"
+            return "CT scan" if "en" in question_lower else "تصوير مقطعي"
         elif "mri" in answer.lower() or "magnetic resonance" in answer.lower() or "رنين" in answer:
-            return "MRI scan" if "en" in question.lower() else "تصوير بالرنين المغناطيسي"
+            return "MRI scan" if "en" in question_lower else "تصوير بالرنين المغناطيسي"
         elif "ultrasound" in answer.lower() or "موجات" in answer:
-            return "Ultrasound" if "en" in question.lower() else "موجات فوق صوتية"
-        elif "chest" in question.lower() and ("x-ray" in question.lower() or "أشعة" in question):
-            return "Chest X-ray" if "en" in question.lower() else "أشعة سينية على الصدر"
-        elif "abdominal" in question.lower() and ("x-ray" in question.lower() or "أشعة" in question):
-            return "Abdominal X-ray" if "en" in question.lower() else "أشعة سينية على البطن"
+            return "Ultrasound" if "en" in question_lower else "موجات فوق صوتية"
+        elif "chest" in question_lower and ("x-ray" in question_lower or "أشعة" in question_lower):
+            return "Chest X-ray" if "en" in question_lower else "أشعة سينية على الصدر"
+        elif "abdominal" in question_lower and ("x-ray" in question_lower or "أشعة" in question_lower):
+            return "Abdominal X-ray" if "en" in question_lower else "أشعة سينية على البطن"
         else:
-            # If no specific type found, return a generic answer
-            return "Radiograph" if "en" in question.lower() else "صورة إشعاعية"
+            return "Radiograph" if "en" in question_lower else "صورة إشعاعية"
     
-    # Anatomy questions
-    anatomy_keywords = ["where", "أين", "location", "موقع", "region", "منطقة"]
-    if any(keyword in question.lower() for keyword in anatomy_keywords):
+    # 3. Location questions (IMPROVED VERSION)
+    location_keywords = ["where", "أين", "location", "موقع", "region", "منطقة"]
+    if any(keyword in question_lower for keyword in location_keywords):
+        # Apply location terms translation
+        for eng, ar in LOCATION_TERMS.items():
+            if re.search(rf'\b{re.escape(eng)}\b', answer, re.IGNORECASE):
+                answer = re.sub(rf'\b{re.escape(eng)}\b', ar, answer, flags=re.IGNORECASE)
+        
         # Apply medical translation to anatomical terms
         for eng, ar in MEDICAL_TRANSLATION_DICT.items():
-            if eng in answer.lower():
-                answer = answer.replace(eng, ar)
-        return answer
+            if re.search(rf'\b{re.escape(eng)}\b', answer, re.IGNORECASE):
+                answer = re.sub(rf'\b{re.escape(eng)}\b', ar, answer, flags=re.IGNORECASE)
+        
+        # Format location response
+        if is_arabic(question):
+            if "الرئة" in answer or "رئ" in answer:
+                return "الموقع: في المنطقة الرئوية - " + answer
+            elif "العظم" in answer or "عظم" in answer:
+                return "الموقع: في المنطقة العظمية - " + answer
+            elif "القلب" in answer:
+                return "الموقع: في المنطقة القلبية - " + answer
+            else:
+                return "الموقع: " + answer
+        else:
+            if "lung" in answer.lower():
+                return "Location: Pulmonary area - " + answer
+            elif "bone" in answer.lower():
+                return "Location: Bony area - " + answer
+            elif "heart" in answer.lower():
+                return "Location: Cardiac area - " + answer
+            else:
+                return "Location: " + answer
     
-    return answer
+    # 4. General medical terms translation
+    return apply_medical_translation(answer)
 
 def apply_medical_translation(answer):
-    """Apply medical translation dictionary to improve accuracy"""
-    # If answer is in English, translate using dictionary
-    if not is_arabic(answer):
+    """Apply medical translation dictionary to improve accuracy in both directions"""
+    # Create reverse dictionary for Arabic to English translation
+    reverse_dict = {v: k for k, v in MEDICAL_TRANSLATION_DICT.items()}
+    
+    if is_arabic(answer):
+        # If answer is Arabic: translate medical terms to English
+        for ar_term, eng_term in reverse_dict.items():
+            answer = answer.replace(ar_term, eng_term)
+    else:
+        # If answer is English: translate medical terms to Arabic
         for eng, ar in MEDICAL_TRANSLATION_DICT.items():
-            # Case-insensitive replacement with word boundaries
             pattern = r'\b' + re.escape(eng) + r'\b'
             answer = re.sub(pattern, ar, answer, flags=re.IGNORECASE)
+    
     return answer
 
 def ensure_arabic_answer(answer):
@@ -606,12 +701,10 @@ def ensure_arabic_answer(answer):
     if medical_translated != answer:
         return medical_translated, True
     
-    # Fallback to Google Translate
+    # Fallback to Google Translate with quality check
     try:
-        translated, success = cached_translate_text(answer, 'en', 'ar')
-        if success:
-            return translated, True
-        return answer, False
+        translated = ensure_translation_quality(answer, 'en', 'ar')
+        return translated, True
     except:
         return answer, False
 
@@ -901,25 +994,22 @@ def main():
                     elif not question:
                         st.warning("Please enter a question about the medical image" if st.session_state.lang == 'en' else "يرجى إدخال سؤال حول الصورة الطبية")
                     else:
-                        # Translate question if needed (using cached translations)
+                        # تحديد لغة السؤال الأصلي
                         question_is_arabic = is_arabic(question)
-                        
-                        if st.session_state.lang == 'en' and question_is_arabic:
-                            display_question_en, _ = cached_translate_text(question, "ar", "en")
+
+                        # النموذج يحتاج سؤالاً بالعربية دائماً
+                        if question_is_arabic:
                             model_question = question
-                            display_question_ar = question
-                        elif st.session_state.lang == 'en' and not question_is_arabic:
-                            model_question, _ = cached_translate_text(question, "en", "ar")
-                            display_question_en = question
-                            display_question_ar = model_question
-                        elif st.session_state.lang == 'ar' and not question_is_arabic:
-                            model_question, _ = cached_translate_text(question, "en", "ar")
-                            display_question_en = question
-                            display_question_ar = model_question
                         else:
-                            display_question_en, _ = cached_translate_text(question, "ar", "en")
-                            model_question = question
+                            model_question = ensure_translation_quality(question, "en", "ar")
+
+                        # تحضير السؤال للعرض:
+                        if question_is_arabic:
                             display_question_ar = question
+                            display_question_en = ensure_translation_quality(question, "ar", "en")
+                        else:
+                            display_question_en = question
+                            display_question_ar = ensure_translation_quality(question, "en", "ar")
                         
                         # Add medical context
                         contextualized_question = get_medical_context(model_question)
@@ -934,9 +1024,9 @@ def main():
                         # Ensure answer is in Arabic
                         arabic_answer_display, arabic_translated = ensure_arabic_answer(arabic_answer)
                         
-                        # Translate to English
+                        # Translate to English with quality check
                         with st.spinner("🌐 Translating results..." if st.session_state.lang == 'en' else "🌐 جاري ترجمة النتائج..."):
-                            english_answer, _ = cached_translate_text(arabic_answer_display, "ar", "en")
+                            english_answer = ensure_translation_quality(arabic_answer_display, "ar", "en")
                         
                         # Display results in styled boxes
                         st.markdown(f'''
