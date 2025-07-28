@@ -1037,88 +1037,86 @@ def main():
                 )
                 
                 # Analyze Button with gradient design
-    
-    if st.button(T["analyze_button"], type="primary", use_container_width=True):
-        if uploaded_file is None:
-            st.warning("Please upload a medical image first" if st.session_state.lang == 'en' else "يرجى رفع صورة طبية أولاً")
-        elif not question:
-            st.warning("Please enter a question about the medical image" if st.session_state.lang == 'en' else "يرجى إدخال سؤال حول الصورة الطبية")
-        else:
-            # تحديد لغة السؤال الأصلي
-            question_is_arabic = is_arabic(question)
+                if st.button(T["analyze_button"], type="primary", use_container_width=True):
+                    if uploaded_file is None:
+                        st.warning("Please upload a medical image first" if st.session_state.lang == 'en' else "يرجى رفع صورة طبية أولاً")
+                    elif not question:
+                        st.warning("Please enter a question about the medical image" if st.session_state.lang == 'en' else "يرجى إدخال سؤال حول الصورة الطبية")
+                    else:
+                        # تحديد لغة السؤال الأصلي
+                        question_is_arabic = is_arabic(question)
 
-            # النموذج يحتاج سؤالاً بالعربية دائماً
-            if question_is_arabic:
-                model_question = question
-            else:
-                model_question = ensure_translation_quality(question, "en", "ar")
+                        # النموذج يحتاج سؤالاً بالعربية دائماً
+                        if question_is_arabic:
+                            model_question = question
+                        else:
+                            model_question = ensure_translation_quality(question, "en", "ar")
 
-            # تحضير السؤال للعرض:
-            if question_is_arabic:
-                display_question_ar = question
-                display_question_en = ensure_translation_quality(question, "ar", "en")
-            else:
-                display_question_en = question
-                display_question_ar = ensure_translation_quality(question, "en", "ar")
-            
-            # Add medical context
-            contextualized_question = get_medical_context(model_question)
-            
-            # Analyze image
-            with st.spinner("🧠 Analyzing your medical image..." if st.session_state.lang == 'en' else "🧠 جاري تحليل صورتك الطبية..."):
-                arabic_answer = analyze_medical_image(image, contextualized_question, processor, model)
-            
-            # Apply medical translation dictionary
-            arabic_answer = apply_medical_translation(arabic_answer, st.session_state.lang)
-            
-            # Translate to English with quality check
-            with st.spinner("🌐 Translating results..." if st.session_state.lang == 'en' else "🌐 جاري ترجمة النتائج..."):
-                english_answer = ensure_translation_quality(arabic_answer, "ar", "en")
-            
-            # Display results in styled boxes
-            st.markdown(f'''
-            <div class="result-box">
-                <h3>{T["results_title"]}</h3>
-            </div>
-            ''', unsafe_allow_html=True)
-            
-            # Arabic Section - Fully in Arabic
-            st.markdown(f'''
-            <div class="translation-item rtl-text">
-                <div style="display: flex; justify-content: space-between; align-items: center; direction: rtl;">
-                    <div>
-                        <strong>{T["question_label"]}:</strong> {display_question_ar}
-                    </div>
-                    <span class="language-badge arabic-badge">العربية</span>
-                </div>
-                <div style="margin-top: 10px; direction: rtl;">
-                    <strong>{T["analysis_label"]}:</strong> {arabic_answer}
-                </div>
-            </div>
-            ''', unsafe_allow_html=True)
-            
-            # English Section - Fully in English
-            st.markdown(f'''
-            <div class="translation-item">
-                <div style="display: flex; justify-content: space-between; align-items: center;">
-                    <div>
-                        <strong>Question:</strong> {display_question_en}
-                    </div>
-                    <span class="language-badge english-badge">English</span>
-                </div>
-                <div style="margin-top: 10px;">
-                    <strong>Answer:</strong> {english_answer}
-                </div>
-            </div>
-            ''', unsafe_allow_html=True)
-            
-            # Medical disclaimer - show full translation
-            st.info(f"""
-            **{T["disclaimer_title"]}**  
-            {T["disclaimer_content"]}
-            """)
-
-
+                        # تحضير السؤال للعرض:
+                        if question_is_arabic:
+                            display_question_ar = question
+                            display_question_en = ensure_translation_quality(question, "ar", "en")
+                        else:
+                            display_question_en = question
+                            display_question_ar = ensure_translation_quality(question, "en", "ar")
+                        
+                        # Add medical context
+                        contextualized_question = get_medical_context(model_question)
+                        
+                        # Analyze image
+                        with st.spinner("🧠 Analyzing your medical image..." if st.session_state.lang == 'en' else "🧠 جاري تحليل صورتك الطبية..."):
+                            arabic_answer = analyze_medical_image(image, contextualized_question, processor, model)
+                        
+                        # Apply medical translation dictionary
+                        arabic_answer = apply_medical_translation(arabic_answer, st.session_state.lang)
+                        
+                        # Translate to English with quality check
+                        with st.spinner("🌐 Translating results..." if st.session_state.lang == 'en' else "🌐 جاري ترجمة النتائج..."):
+                            english_answer = ensure_translation_quality(arabic_answer, "ar", "en")
+                        
+                        # Display results in styled boxes
+                        st.markdown(f'''
+                        <div class="result-box">
+                            <h3>{T["results_title"]}</h3>
+                        </div>
+                        ''', unsafe_allow_html=True)
+                        
+                        # Arabic Section - Fully in Arabic
+                        st.markdown(f'''
+                        <div class="translation-item rtl-text">
+                            <div style="display: flex; justify-content: space-between; align-items: center; direction: rtl;">
+                                <div>
+                                    <strong>{T["question_label"]}:</strong> {display_question_ar}
+                                </div>
+                                <span class="language-badge arabic-badge">العربية</span>
+                            </div>
+                            <div style="margin-top: 10px; direction: rtl;">
+                                <strong>{T["analysis_label"]}:</strong> {arabic_answer}
+                            </div>
+                        </div>
+                        ''', unsafe_allow_html=True)
+                        
+                        # English Section - Fully in English
+                        st.markdown(f'''
+                        <div class="translation-item">
+                            <div style="display: flex; justify-content: space-between; align-items: center;">
+                                <div>
+                                    <strong>Question:</strong> {display_question_en}
+                                </div>
+                                <span class="language-badge english-badge">English</span>
+                            </div>
+                            <div style="margin-top: 10px;">
+                                <strong>Answer:</strong> {english_answer}
+                            </div>
+                        </div>
+                        ''', unsafe_allow_html=True)
+                        
+                        # Medical disclaimer - show full translation
+                        st.info(f"""
+                        **{T["disclaimer_title"]}**  
+                        {T["disclaimer_content"]}
+                        """)
+        
         else:
             st.error("Failed to load AI models. Please try again later." if st.session_state.lang == 'en' else "فشل تحميل نماذج الذكاء الاصطناعي. يرجى المحاولة لاحقًا.")
     
