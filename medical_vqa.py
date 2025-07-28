@@ -27,6 +27,10 @@ MEDICAL_TRANSLATION_DICT = {
     "mediastinal": "منصفية",
     "pulmonary": "رئوي",
     "paratracheal area": "منطقة مجاورة للرغامى",
+    "radiation": "إشعاع",
+    "radiograph": "صورة إشعاعية",
+    "x-ray": "أشعة سينية",
+    "xray": "أشعة سينية",
     
     # Anatomy
     "lung": "رئة",
@@ -713,6 +717,8 @@ def post_process_answer(question, answer, lang):
             return "تصوير بالرنين المغناطيسي" if is_arabic_lang else "MRI scan"
         elif "ultrasound" in answer.lower() or "موجات" in answer:
             return "موجات فوق صوتية" if is_arabic_lang else "Ultrasound"
+        elif "radiograph" in answer.lower() or "صورة إشعاعية" in answer:
+            return "صورة إشعاعية" if is_arabic_lang else "Radiograph"
         else:
             return "صورة إشعاعية" if is_arabic_lang else "Radiograph"
     
@@ -1137,7 +1143,7 @@ def main():
                             </div>
                             ''', unsafe_allow_html=True)
                         
-                        # Medical disclaimer
+                        # Medical disclaimer - show full translation
                         st.info(f"""
                         **{T["disclaimer_title"]}**  
                         {T["disclaimer_content"]}
