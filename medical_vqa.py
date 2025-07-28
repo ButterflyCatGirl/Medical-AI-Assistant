@@ -649,10 +649,23 @@ def post_process_answer(question, answer):
         else:
             return "Normal" if "en" in question_lower else "طبيعي"
     
-    # 2. Image type questions - SHORT ANSWER
+    # 2. Image type questions - IMPROVED RECOGNITION
     type_keywords = ["what type", "what kind", "نوع", "نوع الصورة", "نوع الأشعة", "أي نوع"]
     if any(keyword in question_lower for keyword in type_keywords):
-        if "x-ray" in answer.lower() or "xray" in answer.lower() or "أشعة" in answer:
+        # Improved recognition logic
+        if "chest" in answer.lower() or "صدر" in answer:
+            if "x-ray" in answer.lower() or "xray" in answer.lower() or "أشعة" in answer:
+                return "Chest X-ray" if "en" in question_lower else "أشعة سينية على الصدر"
+            elif "ct" in answer.lower() or "computed tomography" in answer.lower() or "مقطعي" in answer:
+                return "Chest CT scan" if "en" in question_lower else "تصوير مقطعي للصدر"
+        elif "abdominal" in answer.lower() or "بطن" in answer:
+            if "x-ray" in answer.lower() or "xray" in answer.lower() or "أشعة" in answer:
+                return "Abdominal X-ray" if "en" in question_lower else "أشعة سينية على البطن"
+            elif "ct" in answer.lower() or "computed tomography" in answer.lower() or "مقطعي" in answer:
+                return "Abdominal CT scan" if "en" in question_lower else "تصوير مقطعي للبطن"
+        elif "bone" in answer.lower() or "عظام" in answer:
+            return "Bone X-ray" if "en" in question_lower else "أشعة سينية على العظام"
+        elif "x-ray" in answer.lower() or "xray" in answer.lower() or "أشعة" in answer:
             return "X-ray" if "en" in question_lower else "أشعة سينية"
         elif "ct" in answer.lower() or "computed tomography" in answer.lower() or "مقطعي" in answer:
             return "CT scan" if "en" in question_lower else "تصوير مقطعي"
@@ -660,10 +673,6 @@ def post_process_answer(question, answer):
             return "MRI scan" if "en" in question_lower else "تصوير بالرنين المغناطيسي"
         elif "ultrasound" in answer.lower() or "موجات" in answer:
             return "Ultrasound" if "en" in question_lower else "موجات فوق صوتية"
-        elif "chest" in question_lower and ("x-ray" in question_lower or "أشعة" in question_lower):
-            return "Chest X-ray" if "en" in question_lower else "أشعة سينية على الصدر"
-        elif "abdominal" in question_lower and ("x-ray" in question_lower or "أشعة" in question_lower):
-            return "Abdominal X-ray" if "en" in question_lower else "أشعة سينية على البطن"
         else:
             return "Radiograph" if "en" in question_lower else "صورة إشعاعية"
     
@@ -754,7 +763,7 @@ texts = {
         "analyze_button": "🔬 Analyze Medical Image",
         "results_title": "🔍 Medical Analysis Results",
         "question_label": "Question",
-        "analysis_label": "Analysis",
+        "analysis_label": "Answer",  # Changed from Analysis to Answer
         "disclaimer_title": "⚠️ Medical Disclaimer",
         "disclaimer_content": "This AI analysis is for educational purposes only. Always consult with qualified healthcare professionals for medical decisions. AI responses may contain errors and should not replace professional medical judgment.",
         "about_title": "ℹ️ About MediVision AI",
@@ -797,7 +806,7 @@ texts = {
         "analyze_button": "🔬 تحليل الصورة الطبية",
         "results_title": "🔍 نتائج التحليل الطبي",
         "question_label": "السؤال",
-        "analysis_label": "التحليل",
+        "analysis_label": "الجواب",  # Changed from التحليل to الجواب
         "disclaimer_title": "⚠️ تنبيه طبي",
         "disclaimer_content": "هذا التحليل بالذكاء الاصطناعي لأغراض تعليمية فقط. استشر دائمًا متخصصي الرعاية الصحية المؤهلين لاتخاذ القرارات الطبية. قد تحتوي استجابات الذكاء الاصطناعي على أخطاء ولا ينبغي أن تحل محل الحكم الطبي المهني.",
         "about_title": "ℹ️ حول تطبيق رؤية طبية AI",
@@ -1033,55 +1042,35 @@ def main():
                         </div>
                         ''', unsafe_allow_html=True)
                         
-                        # Display question and answer in correct order with proper labels
-                        if st.session_state.lang == 'en':
-                            # English UI - English first
-                            st.markdown(f'''
-                            <div class="translation-item">
-                                <strong>{T["question_label"]}:</strong> 
-                                {display_question_en}
+                        # English Section
+                        st.markdown(f'''
+                        <div class="translation-item">
+                            <div style="display: flex; justify-content: space-between; align-items: center;">
+                                <div>
+                                    <strong>{T["question_label"]}:</strong> {display_question_en}
+                                </div>
                                 <span class="language-badge english-badge">EN</span>
                             </div>
-                            <div class="translation-item">
-                                <strong>{T["analysis_label"]}:</strong> 
-                                {english_answer}
-                                <span class="language-badge english-badge">EN</span>
+                            <div style="margin-top: 10px;">
+                                <strong>{T["analysis_label"]}:</strong> {english_answer}
                             </div>
-                            <div class="translation-item rtl-text">
-                                <strong>{T["question_label"]}:</strong> 
-                                {display_question_ar}
+                        </div>
+                        ''', unsafe_allow_html=True)
+                        
+                        # Arabic Section
+                        st.markdown(f'''
+                        <div class="translation-item rtl-text">
+                            <div style="display: flex; justify-content: space-between; align-items: center; direction: rtl;">
+                                <div>
+                                    <strong>{T["question_label"]}:</strong> {display_question_ar}
+                                </div>
                                 <span class="language-badge arabic-badge">AR</span>
                             </div>
-                            <div class="translation-item rtl-text">
-                                <strong>{T["analysis_label"]}:</strong> 
-                                {arabic_answer}
-                                <span class="language-badge arabic-badge">AR</span>
+                            <div style="margin-top: 10px; direction: rtl;">
+                                <strong>{T["analysis_label"]}:</strong> {arabic_answer}
                             </div>
-                            ''', unsafe_allow_html=True)
-                        else:
-                            # Arabic UI - Arabic first
-                            st.markdown(f'''
-                            <div class="translation-item rtl-text">
-                                <strong>{T["question_label"]}:</strong> 
-                                {display_question_ar}
-                                <span class="language-badge arabic-badge">AR</span>
-                            </div>
-                            <div class="translation-item rtl-text">
-                                <strong>{T["analysis_label"]}:</strong> 
-                                {arabic_answer}
-                                <span class="language-badge arabic-badge">AR</span>
-                            </div>
-                            <div class="translation-item">
-                                <strong>{T["question_label"]}:</strong> 
-                                {display_question_en}
-                                <span class="language-badge english-badge">EN</span>
-                            </div>
-                            <div class="translation-item">
-                                <strong>{T["analysis_label"]}:</strong> 
-                                {english_answer}
-                                <span class="language-badge english-badge">EN</span>
-                            </div>
-                            ''', unsafe_allow_html=True)
+                        </div>
+                        ''', unsafe_allow_html=True)
                         
                         # Medical disclaimer
                         st.info(f"""
