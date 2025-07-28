@@ -846,8 +846,8 @@ texts = {
         "results_title": "🔍 نتائج التحليل الطبي",
         "question_label": "السؤال",
         "analysis_label": "الجواب",
-        "disclaimer_title": "⚠️ تنبيه طبي",
-        "disclaimer_content": "هذا التحليل بالذكاء الاصطناعي لأغراض تعليمية فقط. استشر دائمًا متخصصي الرعاية الصحية المؤهلين لاتخاذ القرارات الطبية. قد تحتوي استجابات الذكاء الاصطناعي على أخطاء ولا ينبغي أن تحل محل الحكم الطبي المهني.",
+        "disclaimer_title": "⚠️ إخلاء المسؤولية الطبية",
+        "disclaimer_content": "هذا التحليل الذكاء الاصطناعي مُعد لأغراض تعليمية فقط. يُرجى دائمًا استشارة الطبيب المختص لاتخاذ القرارات الطبية. قد تحتوي استجابات الذكاء الاصطناعي على أخطاء ولا يُعتبر بديلاً عن التشخيص الطبي المحترف.",
         "about_title": "ℹ️ حول تطبيق رؤية طبية AI",
         "about_content": "منصة تحليل الصور الطبية المتقدمة التي تجمع بين أحدث تقنيات الذكاء الاصطناعي مع الدعم متعدد اللغات لمتخصصي الرعاية الصحية وطلاب الطب في جميع أنحاء العالم.",
         "features_title": "🔍 الميزات الأساسية",
@@ -1055,9 +1055,7 @@ def main():
                         # تحضير السؤال للعرض:
                         if question_is_arabic:
                             display_question_ar = question
-                            display_question_en = ensure_translation_quality(question, "ar", "en")
                         else:
-                            display_question_en = question
                             display_question_ar = ensure_translation_quality(question, "en", "ar")
                         
                         # Add medical context
@@ -1070,10 +1068,6 @@ def main():
                         # Apply medical translation dictionary
                         arabic_answer = apply_medical_translation(arabic_answer, st.session_state.lang)
                         
-                        # Translate to English with quality check
-                        with st.spinner("🌐 Translating results..." if st.session_state.lang == 'en' else "🌐 جاري ترجمة النتائج..."):
-                            english_answer = ensure_translation_quality(arabic_answer, "ar", "en")
-                        
                         # Display results in styled boxes
                         st.markdown(f'''
                         <div class="result-box">
@@ -1081,7 +1075,7 @@ def main():
                         </div>
                         ''', unsafe_allow_html=True)
                         
-                        # Arabic Section - Fully in Arabic
+                        # Medical results section - Updated to be fully in Arabic
                         st.markdown(f'''
                         <div class="translation-item rtl-text">
                             <div style="display: flex; justify-content: space-between; align-items: center; direction: rtl;">
@@ -1096,26 +1090,15 @@ def main():
                         </div>
                         ''', unsafe_allow_html=True)
                         
-                        # English Section - Fully in English
+                        # Medical disclaimer - show full translation in Arabic
                         st.markdown(f'''
-                        <div class="translation-item">
-                            <div style="display: flex; justify-content: space-between; align-items: center;">
-                                <div>
-                                    <strong>Question:</strong> {display_question_en}
-                                </div>
-                                <span class="language-badge english-badge">English</span>
-                            </div>
-                            <div style="margin-top: 10px;">
-                                <strong>Answer:</strong> {english_answer}
-                            </div>
+                        <div class="card" style="margin-top: 1.5rem; background: linear-gradient(to bottom right, #fff8e1, #ffecb3);">
+                            <h3 style="color: #c62828;">{T["disclaimer_title"]}</h3>
+                            <p class="rtl-text" style="font-size: 0.95rem;">
+                                {T["disclaimer_content"]}
+                            </p>
                         </div>
                         ''', unsafe_allow_html=True)
-                        
-                        # Medical disclaimer - show full translation
-                        st.info(f"""
-                        **{T["disclaimer_title"]}**  
-                        {T["disclaimer_content"]}
-                        """)
         
         else:
             st.error("Failed to load AI models. Please try again later." if st.session_state.lang == 'en' else "فشل تحميل نماذج الذكاء الاصطناعي. يرجى المحاولة لاحقًا.")
