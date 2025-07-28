@@ -391,6 +391,14 @@ st.markdown("""
         line-height: 1.7;
     }
     
+    .ltr-text {
+        direction: ltr;
+        text-align: left;
+        font-family: 'Inter', 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        font-size: 1.15rem;
+        line-height: 1.7;
+    }
+    
     /* Language Badges */
     .language-badge {
         display: inline-block;
@@ -1052,12 +1060,6 @@ def main():
                         else:
                             model_question = ensure_translation_quality(question, "en", "ar")
 
-                        # تحضير السؤال للعرض:
-                        if question_is_arabic:
-                            display_question_ar = question
-                        else:
-                            display_question_ar = ensure_translation_quality(question, "en", "ar")
-                        
                         # Add medical context
                         contextualized_question = get_medical_context(model_question)
                         
@@ -1075,26 +1077,44 @@ def main():
                         </div>
                         ''', unsafe_allow_html=True)
                         
-                        # Medical results section - Updated to be fully in Arabic
-                        st.markdown(f'''
-                        <div class="translation-item rtl-text">
-                            <div style="display: flex; justify-content: space-between; align-items: center; direction: rtl;">
-                                <div>
-                                    <strong>{T["question_label"]}:</strong> {display_question_ar}
+                        # Handle display based on UI language
+                        if st.session_state.lang == 'ar':
+                            # Arabic UI - Display in Arabic
+                            st.markdown(f'''
+                            <div class="translation-item rtl-text">
+                                <div style="display: flex; justify-content: space-between; align-items: center; direction: rtl;">
+                                    <div>
+                                        <strong>{T["question_label"]}:</strong> {question}
+                                    </div>
+                                    <span class="language-badge arabic-badge">العربية</span>
                                 </div>
-                                <span class="language-badge arabic-badge">العربية</span>
+                                <div style="margin-top: 10px; direction: rtl;">
+                                    <strong>{T["analysis_label"]}:</strong> {arabic_answer}
+                                </div>
                             </div>
-                            <div style="margin-top: 10px; direction: rtl;">
-                                <strong>{T["analysis_label"]}:</strong> {arabic_answer}
+                            ''', unsafe_allow_html=True)
+                        else:
+                            # English UI - Translate and display in English
+                            english_answer = ensure_translation_quality(arabic_answer, "ar", "en")
+                            st.markdown(f'''
+                            <div class="translation-item ltr-text">
+                                <div style="display: flex; justify-content: space-between; align-items: center;">
+                                    <div>
+                                        <strong>{T["question_label"]}:</strong> {question}
+                                    </div>
+                                    <span class="language-badge english-badge">English</span>
+                                </div>
+                                <div style="margin-top: 10px;">
+                                    <strong>{T["analysis_label"]}:</strong> {english_answer}
+                                </div>
                             </div>
-                        </div>
-                        ''', unsafe_allow_html=True)
+                            ''', unsafe_allow_html=True)
                         
-                        # Medical disclaimer - show full translation in Arabic
+                        # Medical disclaimer - show in current language
                         st.markdown(f'''
                         <div class="card" style="margin-top: 1.5rem; background: linear-gradient(to bottom right, #fff8e1, #ffecb3);">
                             <h3 style="color: #c62828;">{T["disclaimer_title"]}</h3>
-                            <p class="rtl-text" style="font-size: 0.95rem;">
+                            <p class="{'rtl-text' if st.session_state.lang == 'ar' else 'ltr-text'}" style="font-size: 0.95rem;">
                                 {T["disclaimer_content"]}
                             </p>
                         </div>
